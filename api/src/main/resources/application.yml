@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: penny-pilot-api
+
+  datasource:
+    url: jdbc:sqlite:${DB_PATH:./data/pennypilot.db}
+    driver-class-name: org.sqlite.JDBC
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
