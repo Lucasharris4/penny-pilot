@@ -1,4 +1,4 @@
-package com.pennypilot.api.dto;
+package com.pennypilot.api.dto.category;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

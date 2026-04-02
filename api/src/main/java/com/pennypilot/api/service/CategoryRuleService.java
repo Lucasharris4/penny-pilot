@@ -1,17 +1,17 @@
 package com.pennypilot.api.service;
 
-import com.pennypilot.api.dto.CategoryRuleResponse;
-import com.pennypilot.api.dto.CreateCategoryRuleRequest;
-import com.pennypilot.api.dto.UpdateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.CategoryRuleResponse;
+import com.pennypilot.api.dto.category.CreateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.UpdateCategoryRuleRequest;
 import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.entity.CategoryRule;
 import com.pennypilot.api.repository.CategoryRepository;
 import com.pennypilot.api.repository.CategoryRuleRepository;
+import com.pennypilot.api.util.GlobMatcher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 @Service
 public class CategoryRuleService {
@@ -73,35 +73,12 @@ public class CategoryRuleService {
     }
 
     /**
-     * Matches a text against a glob pattern (case-insensitive).
-     * Glob syntax: * matches any sequence of characters.
-     */
-    public static boolean matchesGlob(String pattern, String text) {
-        String regex = "(?i)" + Pattern.quote("")
-                + globToRegex(pattern);
-        return Pattern.matches(regex, text);
-    }
-
-    private static String globToRegex(String glob) {
-        StringBuilder regex = new StringBuilder();
-        for (int i = 0; i < glob.length(); i++) {
-            char c = glob.charAt(i);
-            if (c == '*') {
-                regex.append(".*");
-            } else {
-                regex.append(Pattern.quote(String.valueOf(c)));
-            }
-        }
-        return regex.toString();
-    }
-
-    /**
      * Given a list of rules (sorted by priority descending) and a merchant/description text,
      * returns the category ID of the highest-priority matching rule, or empty if none match.
      */
     public Optional<Long> findMatchingCategoryId(List<CategoryRule> rules, String text) {
         return rules.stream()
-                .filter(rule -> matchesGlob(rule.getMatchPattern(), text))
+                .filter(rule -> GlobMatcher.matches(rule.getMatchPattern(), text))
                 .findFirst()
                 .map(CategoryRule::getCategoryId);
     }

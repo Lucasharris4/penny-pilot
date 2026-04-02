@@ -1,4 +1,4 @@
-package com.pennypilot.api.dto;
+package com.pennypilot.api.dto.auth;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

@@ -1,4 +1,4 @@
-package com.pennypilot.api.dto;
+package com.pennypilot.api.dto.category;
 
 import com.pennypilot.api.entity.CategoryRule;
 import io.swagger.v3.oas.annotations.media.Schema;

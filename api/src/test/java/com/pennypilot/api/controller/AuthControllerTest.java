@@ -2,10 +2,10 @@ package com.pennypilot.api.controller;
 
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
-import com.pennypilot.api.dto.LoginRequest;
-import com.pennypilot.api.dto.LoginResponse;
-import com.pennypilot.api.dto.RegisterRequest;
-import com.pennypilot.api.dto.UserResponse;
+import com.pennypilot.api.dto.auth.LoginRequest;
+import com.pennypilot.api.dto.auth.LoginResponse;
+import com.pennypilot.api.dto.auth.RegisterRequest;
+import com.pennypilot.api.dto.auth.UserResponse;
 import com.pennypilot.api.service.AuthService;
 import com.pennypilot.api.service.JwtService;
 import org.junit.jupiter.api.Test;

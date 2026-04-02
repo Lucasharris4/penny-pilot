@@ -1,9 +1,9 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.CategoryProperties;
-import com.pennypilot.api.dto.CategoryResponse;
-import com.pennypilot.api.dto.CreateCategoryRequest;
-import com.pennypilot.api.dto.UpdateCategoryRequest;
+import com.pennypilot.api.dto.category.CategoryResponse;
+import com.pennypilot.api.dto.category.CreateCategoryRequest;
+import com.pennypilot.api.dto.category.UpdateCategoryRequest;
 import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.repository.CategoryRepository;
 import org.springframework.stereotype.Service;

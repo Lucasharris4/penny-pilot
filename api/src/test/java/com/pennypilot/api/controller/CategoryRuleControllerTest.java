@@ -2,9 +2,9 @@ package com.pennypilot.api.controller;
 
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
-import com.pennypilot.api.dto.CategoryRuleResponse;
-import com.pennypilot.api.dto.CreateCategoryRuleRequest;
-import com.pennypilot.api.dto.UpdateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.CategoryRuleResponse;
+import com.pennypilot.api.dto.category.CreateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.UpdateCategoryRuleRequest;
 import com.pennypilot.api.service.CategoryRuleService;
 import com.pennypilot.api.service.JwtService;
 import io.jsonwebtoken.Claims;

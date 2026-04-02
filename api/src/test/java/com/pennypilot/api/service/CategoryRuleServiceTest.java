@@ -1,8 +1,8 @@
 package com.pennypilot.api.service;
 
-import com.pennypilot.api.dto.CategoryRuleResponse;
-import com.pennypilot.api.dto.CreateCategoryRuleRequest;
-import com.pennypilot.api.dto.UpdateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.CategoryRuleResponse;
+import com.pennypilot.api.dto.category.CreateCategoryRuleRequest;
+import com.pennypilot.api.dto.category.UpdateCategoryRuleRequest;
 import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.entity.CategoryRule;
 import com.pennypilot.api.repository.CategoryRepository;
@@ -144,44 +144,6 @@ class CategoryRuleServiceTest {
 
         assertThrows(CategoryRuleService.RuleNotFoundException.class,
                 () -> service.deleteRule(USER_ID, 99L));
-    }
-
-    // --- glob matching ---
-
-    @Test
-    void matchesGlob_startsWithPattern() {
-        assertTrue(CategoryRuleService.matchesGlob("STARBUCKS*", "STARBUCKS #1234 SEATTLE WA"));
-    }
-
-    @Test
-    void matchesGlob_containsPattern() {
-        assertTrue(CategoryRuleService.matchesGlob("*COFFEE*", "GOOD MORNING COFFEE SHOP"));
-    }
-
-    @Test
-    void matchesGlob_exactMatch() {
-        assertTrue(CategoryRuleService.matchesGlob("NETFLIX", "NETFLIX"));
-    }
-
-    @Test
-    void matchesGlob_caseInsensitive() {
-        assertTrue(CategoryRuleService.matchesGlob("STARBUCKS*", "starbucks #5678"));
-        assertTrue(CategoryRuleService.matchesGlob("starbucks*", "STARBUCKS #5678"));
-    }
-
-    @Test
-    void matchesGlob_noMatch() {
-        assertFalse(CategoryRuleService.matchesGlob("STARBUCKS*", "DUNKIN DONUTS"));
-    }
-
-    @Test
-    void matchesGlob_endsWithPattern() {
-        assertTrue(CategoryRuleService.matchesGlob("*PHARMACY", "CVS PHARMACY"));
-    }
-
-    @Test
-    void matchesGlob_truncatedMerchantName() {
-        assertTrue(CategoryRuleService.matchesGlob("*STARBUC*", "STARBUC"));
     }
 
     // --- findMatchingCategoryId ---

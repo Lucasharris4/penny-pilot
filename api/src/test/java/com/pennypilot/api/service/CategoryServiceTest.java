@@ -1,9 +1,9 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.CategoryProperties;
-import com.pennypilot.api.dto.CategoryResponse;
-import com.pennypilot.api.dto.CreateCategoryRequest;
-import com.pennypilot.api.dto.UpdateCategoryRequest;
+import com.pennypilot.api.dto.category.CategoryResponse;
+import com.pennypilot.api.dto.category.CreateCategoryRequest;
+import com.pennypilot.api.dto.category.UpdateCategoryRequest;
 import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.repository.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,9 +23,24 @@ class CategoryServiceTest {
     private CategoryService categoryService;
 
     private static final Long USER_ID = 1L;
+
+    // Icons
+    private static final String ICON_CART = "\uD83D\uDED2";       // shopping cart
+    private static final String ICON_FORK_KNIFE = "\uD83C\uDF7D\uFE0F"; // fork and knife
+    private static final String ICON_REFRESH = "\uD83D\uDD04";    // refresh arrows
+    private static final String ICON_COFFEE = "\u2615";            // coffee
+    private static final String ICON_APPLE = "\uD83C\uDF4E";      // apple
+
+    // Colors
+    private static final String COLOR_GREEN = "#4CAF50";
+    private static final String COLOR_ORANGE = "#FF9800";
+    private static final String COLOR_BLUE_GREY = "#607D8B";
+    private static final String COLOR_BROWN = "#8B4513";
+    private static final String COLOR_RED = "#FF0000";
+
     private static final List<CategoryProperties.DefaultCategory> DEFAULT_CATEGORIES = List.of(
-            new CategoryProperties.DefaultCategory("Groceries", "\uD83D\uDED2", "#4CAF50", false),
-            new CategoryProperties.DefaultCategory("Subscriptions", "\uD83D\uDD04", "#607D8B", true)
+            new CategoryProperties.DefaultCategory("Groceries", ICON_CART, COLOR_GREEN, false),
+            new CategoryProperties.DefaultCategory("Subscriptions", ICON_REFRESH, COLOR_BLUE_GREY, true)
     );
 
     @BeforeEach
@@ -39,8 +54,8 @@ class CategoryServiceTest {
 
     @Test
     void listCategories_returnsUserCategories() {
-        Category c1 = makeCategory(1L, USER_ID, "Groceries", "\uD83D\uDED2", "#4CAF50", false);
-        Category c2 = makeCategory(2L, USER_ID, "Dining", "\uD83C\uDF7D\uFE0F", "#FF9800", false);
+        Category c1 = makeCategory(1L, USER_ID, "Groceries", ICON_CART, COLOR_GREEN, false);
+        Category c2 = makeCategory(2L, USER_ID, "Dining", ICON_FORK_KNIFE, COLOR_ORANGE, false);
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(c1, c2));
 
         List<CategoryResponse> result = categoryService.listCategories(USER_ID);
@@ -71,12 +86,12 @@ class CategoryServiceTest {
         });
 
         CategoryResponse response = categoryService.createCategory(USER_ID,
-                new CreateCategoryRequest("Coffee", "\u2615", "#8B4513", false));
+                new CreateCategoryRequest("Coffee", ICON_COFFEE, COLOR_BROWN, false));
 
         assertEquals(1L, response.id());
         assertEquals("Coffee", response.name());
-        assertEquals("\u2615", response.icon());
-        assertEquals("#8B4513", response.color());
+        assertEquals(ICON_COFFEE, response.icon());
+        assertEquals(COLOR_BROWN, response.color());
         assertFalse(response.isSubscription());
     }
 
@@ -90,7 +105,7 @@ class CategoryServiceTest {
         });
 
         CategoryResponse response = categoryService.createCategory(USER_ID,
-                new CreateCategoryRequest("Netflix", "\uD83D\uDD04", "#607D8B", true));
+                new CreateCategoryRequest("Netflix", ICON_REFRESH, COLOR_BLUE_GREY, true));
 
         assertTrue(response.isSubscription());
     }
@@ -126,28 +141,28 @@ class CategoryServiceTest {
 
     @Test
     void updateCategory_success() {
-        Category existing = makeCategory(1L, USER_ID, "Grocries", "\uD83D\uDED2", "#4CAF50", false);
+        Category existing = makeCategory(1L, USER_ID, "Grocries", ICON_CART, COLOR_GREEN, false);
         when(categoryRepository.findByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(existing));
         when(categoryRepository.existsByNameAndUserId("Groceries", USER_ID)).thenReturn(false);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CategoryResponse response = categoryService.updateCategory(USER_ID, 1L,
-                new UpdateCategoryRequest("Groceries", "\uD83D\uDED2", "#4CAF50", false));
+                new UpdateCategoryRequest("Groceries", ICON_CART, COLOR_GREEN, false));
 
         assertEquals("Groceries", response.name());
     }
 
     @Test
     void updateCategory_sameNameAllowed() {
-        Category existing = makeCategory(1L, USER_ID, "Groceries", "\uD83D\uDED2", "#4CAF50", false);
+        Category existing = makeCategory(1L, USER_ID, "Groceries", ICON_CART, COLOR_GREEN, false);
         when(categoryRepository.findByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(existing));
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CategoryResponse response = categoryService.updateCategory(USER_ID, 1L,
-                new UpdateCategoryRequest("Groceries", "\uD83C\uDF4E", "#FF0000", false));
+                new UpdateCategoryRequest("Groceries", ICON_APPLE, COLOR_RED, false));
 
         assertEquals("Groceries", response.name());
-        assertEquals("\uD83C\uDF4E", response.icon());
+        assertEquals(ICON_APPLE, response.icon());
     }
 
     @Test

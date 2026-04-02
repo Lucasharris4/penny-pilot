@@ -22,40 +22,40 @@ app:
     seed-on-registration: true
     defaults:
       - name: Groceries
-        icon: "\uD83D\uDED2"
-        color: "#4CAF50"
+        icon: "\uD83D\uDED2"    # shopping cart
+        color: "#4CAF50"         # green
         is-subscription: false
       - name: Dining
-        icon: "\uD83C\uDF7D\uFE0F"
-        color: "#FF9800"
+        icon: "\uD83C\uDF7D\uFE0F"  # fork and knife
+        color: "#FF9800"              # orange
         is-subscription: false
       - name: Transportation
-        icon: "\uD83D\uDE97"
-        color: "#2196F3"
+        icon: "\uD83D\uDE97"    # car
+        color: "#2196F3"         # blue
         is-subscription: false
       - name: Entertainment
-        icon: "\uD83C\uDFAC"
-        color: "#9C27B0"
+        icon: "\uD83C\uDFAC"    # clapper board
+        color: "#9C27B0"         # purple
         is-subscription: false
       - name: Subscriptions
-        icon: "\uD83D\uDD04"
-        color: "#607D8B"
+        icon: "\uD83D\uDD04"    # refresh arrows
+        color: "#607D8B"         # blue-grey
         is-subscription: true
       - name: Shopping
-        icon: "\uD83D\uDECD\uFE0F"
-        color: "#E91E63"
+        icon: "\uD83D\uDECD\uFE0F"  # shopping bags
+        color: "#E91E63"              # pink
         is-subscription: false
       - name: Bills
-        icon: "\uD83D\uDCC4"
-        color: "#795548"
+        icon: "\uD83D\uDCC4"    # page facing up
+        color: "#795548"         # brown
         is-subscription: false
       - name: Income
-        icon: "\uD83D\uDCB0"
-        color: "#4CAF50"
+        icon: "\uD83D\uDCB0"    # money bag
+        color: "#4CAF50"         # green
         is-subscription: false
       - name: Other
-        icon: "\uD83D\uDCE6"
-        color: "#9E9E9E"
+        icon: "\uD83D\uDCE6"    # package
+        color: "#9E9E9E"         # grey
         is-subscription: false
 
 management:

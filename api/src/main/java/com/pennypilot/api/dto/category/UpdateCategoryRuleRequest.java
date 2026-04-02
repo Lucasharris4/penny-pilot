@@ -1,11 +1,11 @@
-package com.pennypilot.api.dto;
+package com.pennypilot.api.dto.category;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@Schema(description = "Create category rule request")
-public record CreateCategoryRuleRequest(
+@Schema(description = "Update category rule request")
+public record UpdateCategoryRuleRequest(
         @Schema(description = "Glob-style match pattern (case-insensitive)", example = "STARBUCKS*")
         @NotBlank(message = "Match pattern is required")
         String matchPattern,

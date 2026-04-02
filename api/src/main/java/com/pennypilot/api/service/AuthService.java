@@ -1,10 +1,10 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.dto.LoginRequest;
-import com.pennypilot.api.dto.LoginResponse;
-import com.pennypilot.api.dto.RegisterRequest;
-import com.pennypilot.api.dto.UserResponse;
+import com.pennypilot.api.dto.auth.LoginRequest;
+import com.pennypilot.api.dto.auth.LoginResponse;
+import com.pennypilot.api.dto.auth.RegisterRequest;
+import com.pennypilot.api.dto.auth.UserResponse;
 import com.pennypilot.api.entity.User;
 import com.pennypilot.api.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;

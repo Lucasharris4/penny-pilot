@@ -1,12 +1,15 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.config.CategoryProperties;
 import com.pennypilot.api.config.FixedClock;
-import com.pennypilot.api.dto.LoginRequest;
-import com.pennypilot.api.dto.LoginResponse;
-import com.pennypilot.api.dto.RegisterRequest;
-import com.pennypilot.api.dto.UserResponse;
+import com.pennypilot.api.dto.auth.LoginRequest;
+import com.pennypilot.api.dto.auth.LoginResponse;
+import com.pennypilot.api.dto.auth.RegisterRequest;
+import com.pennypilot.api.dto.auth.UserResponse;
+import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.entity.User;
+import com.pennypilot.api.repository.CategoryRepository;
 import com.pennypilot.api.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,6 +28,7 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     private UserRepository userRepository;
+    private CategoryRepository categoryRepository;
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
     private JwtService jwtService;
@@ -33,14 +38,19 @@ class AuthServiceTest {
     private static final Instant FIXED_TIME = Instant.now();
     private static final AuthProperties AUTH_PROPS =
             new AuthProperties(8, "test-secret-that-is-at-least-32-bytes-long!", 86400000);
+    private static final CategoryProperties CATEGORY_PROPS = new CategoryProperties(true, List.of(
+            new CategoryProperties.DefaultCategory("Groceries", "cart", "#4CAF50", false),
+            new CategoryProperties.DefaultCategory("Subscriptions", "refresh", "#607D8B", true)
+    ));
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
+        categoryRepository = mock(CategoryRepository.class);
         passwordEncoder = new BCryptPasswordEncoder();
         clock = new FixedClock(FIXED_TIME);
         jwtService = new JwtService(AUTH_PROPS, clock);
-        categoryService = mock(CategoryService.class);
+        categoryService = new CategoryService(categoryRepository, CATEGORY_PROPS);
         authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService, categoryService);
     }
 
@@ -59,7 +69,15 @@ class AuthServiceTest {
         assertEquals(1L, response.id());
         assertEquals("user@example.com", response.email());
         assertEquals(FIXED_TIME, response.createdAt());
-        verify(categoryService).seedDefaults(1L);
+
+        // Verify default categories were seeded via real CategoryService
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Category>> categoryCaptor = ArgumentCaptor.forClass(List.class);
+        verify(categoryRepository).saveAll(categoryCaptor.capture());
+        List<Category> seededCategories = categoryCaptor.getValue();
+        assertEquals(2, seededCategories.size());
+        assertEquals("Groceries", seededCategories.get(0).getName());
+        assertEquals(1L, seededCategories.get(0).getUserId());
     }
 
     @Test
