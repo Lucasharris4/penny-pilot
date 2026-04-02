@@ -1,6 +1,7 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.config.Clock;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -16,14 +17,16 @@ public class JwtService {
 
     private final SecretKey key;
     private final long expirationMs;
+    private final Clock clock;
 
-    public JwtService(AuthProperties authProperties) {
+    public JwtService(AuthProperties authProperties, Clock clock) {
         this.key = Keys.hmacShaKeyFor(authProperties.jwtSecret().getBytes(StandardCharsets.UTF_8));
         this.expirationMs = authProperties.jwtExpirationMs();
+        this.clock = clock;
     }
 
     public String generateToken(Long userId, String email) {
-        Date now = new Date();
+        Date now = clock.nowAsDate();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()

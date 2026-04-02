@@ -1,6 +1,7 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.config.FixedClock;
 import com.pennypilot.api.dto.LoginRequest;
 import com.pennypilot.api.dto.LoginResponse;
 import com.pennypilot.api.dto.RegisterRequest;
@@ -26,7 +27,9 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
     private JwtService jwtService;
+    private FixedClock clock;
 
+    private static final Instant FIXED_TIME = Instant.parse("2026-04-01T12:00:00Z");
     private static final AuthProperties AUTH_PROPS =
             new AuthProperties(8, "test-secret-that-is-at-least-32-bytes-long!", 86400000);
 
@@ -34,7 +37,8 @@ class AuthServiceTest {
     void setUp() {
         userRepository = mock(UserRepository.class);
         passwordEncoder = new BCryptPasswordEncoder();
-        jwtService = new JwtService(AUTH_PROPS);
+        clock = new FixedClock(FIXED_TIME);
+        jwtService = new JwtService(AUTH_PROPS, clock);
         authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService);
     }
 
@@ -44,7 +48,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(1L);
-            user.setCreatedAt(Instant.now());
+            user.setCreatedAt(FIXED_TIME);
             return user;
         });
 
@@ -52,7 +56,7 @@ class AuthServiceTest {
 
         assertEquals(1L, response.id());
         assertEquals("user@example.com", response.email());
-        assertNotNull(response.createdAt());
+        assertEquals(FIXED_TIME, response.createdAt());
     }
 
     @Test
@@ -61,7 +65,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(1L);
-            user.setCreatedAt(Instant.now());
+            user.setCreatedAt(FIXED_TIME);
             return user;
         });
 
@@ -95,7 +99,7 @@ class AuthServiceTest {
         user.setId(1L);
         user.setEmail("user@example.com");
         user.setPasswordHash(passwordEncoder.encode("password123"));
-        user.setCreatedAt(Instant.now());
+        user.setCreatedAt(FIXED_TIME);
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
 
