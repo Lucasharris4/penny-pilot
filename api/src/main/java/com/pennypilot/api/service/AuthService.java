@@ -1,6 +1,8 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.dto.LoginRequest;
+import com.pennypilot.api.dto.LoginResponse;
 import com.pennypilot.api.dto.RegisterRequest;
 import com.pennypilot.api.dto.UserResponse;
 import com.pennypilot.api.entity.User;
@@ -14,12 +16,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties authProperties;
+    private final JwtService jwtService;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       AuthProperties authProperties) {
+                       AuthProperties authProperties, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authProperties = authProperties;
+        this.jwtService = jwtService;
     }
 
     public UserResponse register(RegisterRequest request) {
@@ -38,6 +42,24 @@ public class AuthService {
 
         User saved = userRepository.save(user);
         return UserResponse.from(saved);
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(InvalidCredentialsException::new);
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new InvalidCredentialsException();
+        }
+
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        return new LoginResponse(token);
+    }
+
+    public static class InvalidCredentialsException extends RuntimeException {
+        public InvalidCredentialsException() {
+            super("Invalid email or password");
+        }
     }
 
     public static class EmailAlreadyExistsException extends RuntimeException {

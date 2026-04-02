@@ -1,6 +1,8 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.dto.LoginRequest;
+import com.pennypilot.api.dto.LoginResponse;
 import com.pennypilot.api.dto.RegisterRequest;
 import com.pennypilot.api.dto.UserResponse;
 import com.pennypilot.api.entity.User;
@@ -11,6 +13,9 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -20,13 +25,17 @@ class AuthServiceTest {
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
+    private JwtService jwtService;
+
+    private static final AuthProperties AUTH_PROPS =
+            new AuthProperties(8, "test-secret-that-is-at-least-32-bytes-long!", 86400000);
 
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
         passwordEncoder = new BCryptPasswordEncoder();
-        AuthProperties authProperties = new AuthProperties(8, "test-secret", 86400000);
-        authService = new AuthService(userRepository, passwordEncoder, authProperties);
+        jwtService = new JwtService(AUTH_PROPS);
+        authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService);
     }
 
     @Test
@@ -35,7 +44,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(1L);
-            user.setCreatedAt(java.time.Instant.now());
+            user.setCreatedAt(Instant.now());
             return user;
         });
 
@@ -52,7 +61,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId(1L);
-            user.setCreatedAt(java.time.Instant.now());
+            user.setCreatedAt(Instant.now());
             return user;
         });
 
@@ -78,5 +87,43 @@ class AuthServiceTest {
     void register_shortPassword_throws() {
         assertThrows(IllegalArgumentException.class,
                 () -> authService.register(new RegisterRequest("user@example.com", "short")));
+    }
+
+    @Test
+    void login_success() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("user@example.com");
+        user.setPasswordHash(passwordEncoder.encode("password123"));
+        user.setCreatedAt(Instant.now());
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        LoginResponse response = authService.login(new LoginRequest("user@example.com", "password123"));
+
+        assertNotNull(response.token());
+        assertTrue(jwtService.isValid(response.token()));
+        assertEquals(1L, jwtService.getUserIdFromToken(response.token()));
+    }
+
+    @Test
+    void login_wrongPassword_throws() {
+        User user = new User();
+        user.setId(1L);
+        user.setEmail("user@example.com");
+        user.setPasswordHash(passwordEncoder.encode("password123"));
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
+
+        assertThrows(AuthService.InvalidCredentialsException.class,
+                () -> authService.login(new LoginRequest("user@example.com", "wrongpassword")));
+    }
+
+    @Test
+    void login_unknownEmail_throws() {
+        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(AuthService.InvalidCredentialsException.class,
+                () -> authService.login(new LoginRequest("unknown@example.com", "password123")));
     }
 }

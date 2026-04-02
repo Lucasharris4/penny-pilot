@@ -1,6 +1,8 @@
 package com.pennypilot.api.controller;
 
 import com.pennypilot.api.config.SecurityConfig;
+import com.pennypilot.api.dto.LoginRequest;
+import com.pennypilot.api.dto.LoginResponse;
 import com.pennypilot.api.dto.RegisterRequest;
 import com.pennypilot.api.dto.UserResponse;
 import com.pennypilot.api.service.AuthService;
@@ -92,5 +94,39 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void login_returns200WithToken() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(new LoginResponse("jwt-token-here"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "user@example.com", "password": "password123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("jwt-token-here"));
+    }
+
+    @Test
+    void login_invalidCredentials_returns401() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new AuthService.InvalidCredentialsException());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "user@example.com", "password": "wrongpassword"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @Test
+    void logout_returns200() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk());
     }
 }
