@@ -1,11 +1,13 @@
 package com.pennypilot.api.controller;
 
+import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.dto.LoginRequest;
 import com.pennypilot.api.dto.LoginResponse;
 import com.pennypilot.api.dto.RegisterRequest;
 import com.pennypilot.api.dto.UserResponse;
 import com.pennypilot.api.service.AuthService;
+import com.pennypilot.api.service.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -22,7 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class AuthControllerTest {
 
     @Autowired
@@ -30,6 +32,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private JwtService jwtService;
 
     @Test
     void register_returns201() throws Exception {
