@@ -22,9 +22,6 @@ public class Category {
     @Column
     private String color;
 
-    @Column(name = "is_subscription", nullable = false)
-    private boolean isSubscription;
-
     public Long getId() {
         return id;
     }
@@ -65,11 +62,4 @@ public class Category {
         this.color = color;
     }
 
-    public boolean isSubscription() {
-        return isSubscription;
-    }
-
-    public void setSubscription(boolean subscription) {
-        isSubscription = subscription;
-    }
 }

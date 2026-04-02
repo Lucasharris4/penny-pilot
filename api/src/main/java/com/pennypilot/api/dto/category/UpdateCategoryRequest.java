@@ -13,8 +13,5 @@ public record UpdateCategoryRequest(
         String icon,
 
         @Schema(description = "Hex color for charts", example = "#4CAF50")
-        String color,
-
-        @Schema(description = "Whether this is a subscription-type category", example = "false")
-        Boolean isSubscription
+        String color
 ) {}

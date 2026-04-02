@@ -15,18 +15,14 @@ public record CategoryResponse(
         String icon,
 
         @Schema(description = "Hex color for charts")
-        String color,
-
-        @Schema(description = "Whether this is a subscription-type category")
-        boolean isSubscription
+        String color
 ) {
     public static CategoryResponse from(Category category) {
         return new CategoryResponse(
                 category.getId(),
                 category.getName(),
                 category.getIcon(),
-                category.getColor(),
-                category.isSubscription()
+                category.getColor()
         );
     }
 }

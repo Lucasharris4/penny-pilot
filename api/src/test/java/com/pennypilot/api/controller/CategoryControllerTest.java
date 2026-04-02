@@ -55,8 +55,8 @@ class CategoryControllerTest {
     @Test
     void listCategories_returns200() throws Exception {
         when(categoryService.listCategories(1L)).thenReturn(List.of(
-                new CategoryResponse(1L, "Groceries", "\uD83D\uDED2", "#4CAF50", false),
-                new CategoryResponse(2L, "Dining", "\uD83C\uDF7D\uFE0F", "#FF9800", false)
+                new CategoryResponse(1L, "Groceries", "\uD83D\uDED2", "#4CAF50"),
+                new CategoryResponse(2L, "Dining", "\uD83C\uDF7D\uFE0F", "#FF9800")
         ));
 
         mockMvc.perform(get("/api/categories")
@@ -79,13 +79,13 @@ class CategoryControllerTest {
     @Test
     void createCategory_returns201() throws Exception {
         when(categoryService.createCategory(eq(1L), any(CreateCategoryRequest.class)))
-                .thenReturn(new CategoryResponse(1L, "Coffee", "\u2615", "#8B4513", false));
+                .thenReturn(new CategoryResponse(1L, "Coffee", "\u2615", "#8B4513"));
 
         mockMvc.perform(post("/api/categories")
                         .header("Authorization", "Bearer " + FAKE_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name": "Coffee", "icon": "\\u2615", "color": "#8B4513", "isSubscription": false}
+                                {"name": "Coffee", "icon": "\\u2615", "color": "#8B4513"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
@@ -123,13 +123,13 @@ class CategoryControllerTest {
     @Test
     void updateCategory_returns200() throws Exception {
         when(categoryService.updateCategory(eq(1L), eq(1L), any(UpdateCategoryRequest.class)))
-                .thenReturn(new CategoryResponse(1L, "Groceries", "\uD83C\uDF4E", "#FF0000", false));
+                .thenReturn(new CategoryResponse(1L, "Groceries", "\uD83C\uDF4E", "#FF0000"));
 
         mockMvc.perform(put("/api/categories/1")
                         .header("Authorization", "Bearer " + FAKE_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name": "Groceries", "icon": "\uD83C\uDF4E", "color": "#FF0000", "isSubscription": false}
+                                {"name": "Groceries", "icon": "\uD83C\uDF4E", "color": "#FF0000"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Groceries"))

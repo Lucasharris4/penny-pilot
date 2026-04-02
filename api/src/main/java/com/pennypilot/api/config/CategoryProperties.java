@@ -12,7 +12,6 @@ public record CategoryProperties(
     public record DefaultCategory(
             String name,
             String icon,
-            String color,
-            boolean isSubscription
+            String color
     ) {}
 }

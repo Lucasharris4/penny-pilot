@@ -105,7 +105,7 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 Status: Complete
 
 ### Story: Category CRUD API
-REST endpoints for managing budget categories (create, list, update, delete). Include icon, color, and `is_subscription` flag. All operations scoped to the authenticated user.
+REST endpoints for managing budget categories (create, list, update, delete). Include icon and color. All operations scoped to the authenticated user.
 - [x] Complete
 
 > **Dev notes**:
@@ -116,19 +116,19 @@ REST endpoints for managing budget categories (create, list, update, delete). In
 > - **409 on duplicate name.** Reject creating a category with a name that already exists for the same user.
 > - **API contract:**
 >   - `GET /api/categories` → 200, `Category[]`
->   - `POST /api/categories` → 201, `Category` — body: `{ name, icon?, color?, isSubscription? }`
->   - `PUT /api/categories/{id}` → 200, `Category` — body: `{ name, icon?, color?, isSubscription? }`
+>   - `POST /api/categories` → 201, `Category` — body: `{ name, icon?, color? }`
+>   - `PUT /api/categories/{id}` → 200, `Category` — body: `{ name, icon?, color? }`
 >   - `DELETE /api/categories/{id}` → 204
->   - Response shape: `{ id, name, icon, color, isSubscription }`
+>   - Response shape: `{ id, name, icon, color }`
 
 ### Story: Default category seeding
 On first registration, seed a set of default categories for the new user. Default list and seeding behavior are configurable via `application.yml`.
 - [x] Complete
 
 > **Dev notes**:
-> - **Configurable via `application.yml`.** `app.categories.seed-on-registration: true/false` controls whether seeding happens. The default category list (names, icons, colors, isSubscription) is also defined in config, not hardcoded.
+> - **Configurable via `application.yml`.** `app.categories.seed-on-registration: true/false` controls whether seeding happens. The default category list (names, icons, colors) is also defined in config, not hardcoded.
 > - **Triggered from `AuthService.register()`.** After user creation, calls `CategoryService.seedDefaults(userId)` if seeding is enabled.
-> - **Default categories:** Groceries, Dining, Transportation, Entertainment, Subscriptions (isSubscription=true), Shopping, Bills, Income, Other. Each with a sensible icon and color.
+> - **Default categories:** Groceries, Dining, Transportation, Entertainment, Subscriptions, Shopping, Bills, Income, Other. Each with a sensible icon and color.
 > - **Expect this list to evolve.** The config-driven approach means updating defaults is a config change, not a code change. Changes only affect new registrations — existing users keep their categories.
 > - **No default category rules are seeded.** Users build their own rules over time. Merchant map / AI auto-categorization are stretch goals.
 

@@ -39,8 +39,8 @@ class AuthServiceTest {
     private static final AuthProperties AUTH_PROPS =
             new AuthProperties(8, "test-secret-that-is-at-least-32-bytes-long!", 86400000);
     private static final CategoryProperties CATEGORY_PROPS = new CategoryProperties(true, List.of(
-            new CategoryProperties.DefaultCategory("Groceries", "cart", "#4CAF50", false),
-            new CategoryProperties.DefaultCategory("Subscriptions", "refresh", "#607D8B", true)
+            new CategoryProperties.DefaultCategory("Groceries", "cart", "#4CAF50"),
+            new CategoryProperties.DefaultCategory("Subscriptions", "refresh", "#607D8B")
     ));
 
     @BeforeEach

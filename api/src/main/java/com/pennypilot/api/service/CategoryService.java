@@ -33,7 +33,6 @@ public class CategoryService {
                     c.setName(def.name());
                     c.setIcon(def.icon());
                     c.setColor(def.color());
-                    c.setSubscription(def.isSubscription());
                     return c;
                 })
                 .toList();
@@ -57,7 +56,6 @@ public class CategoryService {
         category.setName(request.name());
         category.setIcon(request.icon());
         category.setColor(request.color());
-        category.setSubscription(request.isSubscription() != null && request.isSubscription());
 
         Category saved = categoryRepository.save(category);
         return CategoryResponse.from(saved);
@@ -75,7 +73,6 @@ public class CategoryService {
         category.setName(request.name());
         category.setIcon(request.icon());
         category.setColor(request.color());
-        category.setSubscription(request.isSubscription() != null && request.isSubscription());
 
         Category saved = categoryRepository.save(category);
         return CategoryResponse.from(saved);
