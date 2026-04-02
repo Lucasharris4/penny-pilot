@@ -1,46 +1,31 @@
 # Backlog
 
-## Epic: Project Scaffolding
-Status: Complete
-
-### Story: Initialize Spring Boot API project
-Set up the API project under `api/` with Gradle, Java 21, Spring Boot 3.x. Include dependencies for Spring Web, Spring Data JPA, SQLite dialect, and Spring Security. Configure `application.yml` with SQLite datasource pointing to `./data/pennypilot.db`. Add a health check endpoint at `GET /api/health`.
-- [x] Complete
-
-> **Dev notes**: Use Spring Boot Actuator for health endpoint (standard `/actuator/health` path). SQLite dialect via `hibernate-community-dialects`. Spring Security filter chain permits all requests — Auth epic will lock it down. Include springdoc-openapi for Swagger UI. Controller test for the health endpoint.
-
-### Story: Initialize React frontend project
-Set up the frontend under `frontend/` with Vite, React 18, TypeScript. Install Shadcn/ui, Tailwind CSS, and Recharts. Add a placeholder landing page that confirms the app loads.
-- [x] Complete
-
-> **Dev notes**: Tailwind CSS v4. React 19 (current stable from Vite template). Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
-
-### Story: Docker setup
-Create Dockerfiles for both API and frontend. Create `docker-compose.yml` that builds and runs both services with a volume mount for `./data/`. Verify `docker-compose up --build` starts both services and the health check responds.
-- [x] Complete
-
-> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Docker healthcheck on API via /actuator/health. Frontend depends on API health.
-
----
-
 ## Epic: Auth
-Status: Not Started
+Status: 🔨 In Progress
 
 ### Story: User registration endpoint
-`POST /api/auth/register` accepts username, password, and optional email. Passwords are hashed with bcrypt. Returns the created user (without password hash). Reject duplicate usernames.
+`POST /api/auth/register` accepts email and password. Passwords are hashed with bcrypt. Returns the created user (without password hash). Reject duplicate emails.
 - [ ] Complete
+
+> **Dev notes**: Email replaces username as the login identifier — no separate username field. USERS table: id, email (unique), password_hash (bcrypt, one-way), created_at. Password min 8 chars, configurable via application.yml. Response: `201 { id, email, createdAt }`. Errors: 400 (validation), 409 (duplicate email). springdoc annotations on controller. Service + controller tests.
 
 ### Story: User login endpoint
-`POST /api/auth/login` accepts username and password, validates credentials, returns a JWT. `POST /api/auth/logout` invalidates the token.
+`POST /api/auth/login` accepts email and password, validates credentials, returns a JWT. `POST /api/auth/logout` is a no-op 200 (client discards token).
 - [ ] Complete
 
+> **Dev notes**: JWT signed with JWT_SECRET env var, 24h expiry, contains user ID and email in claims. Uses `jjwt` library. 401 on bad credentials — same message for wrong email and wrong password (prevent enumeration). Logout has no server-side invalidation for MVP.
+
 ### Story: JWT auth filter
-Secure all `/api/*` endpoints except `/api/auth/*` and `/api/health`. Requests without a valid JWT receive 401. Every authenticated endpoint must scope queries to the logged-in user's ID.
+Secure all `/api/*` endpoints except `/api/auth/**` and `/actuator/health`. Requests without a valid JWT receive 401. Every authenticated endpoint must scope queries to the logged-in user's ID.
 - [ ] Complete
+
+> **Dev notes**: Custom `JwtAuthenticationFilter` (OncePerRequestFilter). Reads `Authorization: Bearer <token>`. Also permit `/swagger-ui/**` and `/v3/api-docs/**`. `SecurityUtils.getCurrentUserId()` utility for downstream code.
 
 ### Story: Login and registration UI
 Frontend pages for login and registration. After successful login, store JWT and redirect to dashboard. Show validation errors on bad input or failed login.
 - [ ] Complete
+
+> **Dev notes**: Install `react-router-dom`. Routes: `/login`, `/register`, `/dashboard` (placeholder). JWT stored in localStorage. Auth context/provider redirects unauthenticated users to `/login`. API client module at `src/lib/api.ts`.
 
 ---
 
@@ -163,6 +148,31 @@ Comprehensive input validation on both API (reject bad data with clear error mes
 ### Story: Responsive layout
 Ensure all pages work at common screen widths. Sidebar collapses on smaller screens. Tables become scrollable or stack on narrow viewports.
 - [ ] Complete
+
+## Done
+
+## Epic: Project Scaffolding ✅
+Status: Complete 
+
+### Story: Initialize Spring Boot API project
+Set up the API project under `api/` with Gradle, Java 21, Spring Boot 3.x. Include dependencies for Spring Web, Spring Data JPA, SQLite dialect, and Spring Security. Configure `application.yml` with SQLite datasource pointing to `./data/pennypilot.db`. Add a health check endpoint at `GET /api/health`.
+- [x] Complete
+
+> **Dev notes**: Use Spring Boot Actuator for health endpoint (standard `/actuator/health` path). SQLite dialect via `hibernate-community-dialects`. Spring Security filter chain permits all requests — Auth epic will lock it down. Include springdoc-openapi for Swagger UI. Controller test for the health endpoint.
+
+### Story: Initialize React frontend project
+Set up the frontend under `frontend/` with Vite, React 18, TypeScript. Install Shadcn/ui, Tailwind CSS, and Recharts. Add a placeholder landing page that confirms the app loads.
+- [x] Complete
+
+> **Dev notes**: Tailwind CSS v4. React 19 (current stable from Vite template). Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
+
+### Story: Docker setup
+Create Dockerfiles for both API and frontend. Create `docker-compose.yml` that builds and runs both services with a volume mount for `./data/`. Verify `docker-compose up --build` starts both services and the health check responds.
+- [x] Complete
+
+> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Docker healthcheck on API via /actuator/health. Frontend depends on API health.
+
+---
 
 ---
 
