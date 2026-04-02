@@ -1,31 +1,31 @@
 # Backlog
 
 ## Epic: Auth
-Status: 🔨 In Progress
+Status: ✅ Complete
 
 ### Story: User registration endpoint
 `POST /api/auth/register` accepts email and password. Passwords are hashed with bcrypt. Returns the created user (without password hash). Reject duplicate emails.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**: Email replaces username as the login identifier — no separate username field. USERS table: id, email (unique), password_hash (bcrypt, one-way), created_at. Password min 8 chars, configurable via application.yml. Response: `201 { id, email, createdAt }`. Errors: 400 (validation), 409 (duplicate email). springdoc annotations on controller. Service + controller tests.
 
 ### Story: User login endpoint
 `POST /api/auth/login` accepts email and password, validates credentials, returns a JWT. `POST /api/auth/logout` is a no-op 200 (client discards token).
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**: JWT signed with JWT_SECRET env var, 24h expiry, contains user ID and email in claims. Uses `jjwt` library. 401 on bad credentials — same message for wrong email and wrong password (prevent enumeration). Logout has no server-side invalidation for MVP.
 
 ### Story: JWT auth filter
 Secure all `/api/*` endpoints except `/api/auth/**` and `/actuator/health`. Requests without a valid JWT receive 401. Every authenticated endpoint must scope queries to the logged-in user's ID.
-- [ ] Complete
+- [x] Complete
 
-> **Dev notes**: Custom `JwtAuthenticationFilter` (OncePerRequestFilter). Reads `Authorization: Bearer <token>`. Also permit `/swagger-ui/**` and `/v3/api-docs/**`. `SecurityUtils.getCurrentUserId()` utility for downstream code.
+> **Dev notes**: Custom `JwtAuthenticationFilter` (OncePerRequestFilter). Reads `Authorization: Bearer <token>`. Also permit `/swagger-ui/**` and `/v3/api-docs/**`. `SecurityUtils.getCurrentUserId()` utility for downstream code. Returns 401 (not 403) via HttpStatusEntryPoint.
 
 ### Story: Login and registration UI
 Frontend pages for login and registration. After successful login, store JWT and redirect to dashboard. Show validation errors on bad input or failed login.
-- [ ] Complete
+- [x] Complete
 
-> **Dev notes**: Install `react-router-dom`. Routes: `/login`, `/register`, `/dashboard` (placeholder). JWT stored in localStorage. Auth context/provider redirects unauthenticated users to `/login`. API client module at `src/lib/api.ts`.
+> **Dev notes**: Install `react-router-dom`. Routes: `/login`, `/register`, `/dashboard` (placeholder). JWT stored in localStorage. Auth context/provider redirects unauthenticated users to `/login`. API client module at `src/lib/api.ts`. Auto-login after registration.
 
 ---
 
