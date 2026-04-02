@@ -7,7 +7,5 @@ public interface Clock {
 
     Instant now();
 
-    default Date nowAsDate() {
-        return Date.from(now());
-    }
+    Date nowAsDate();
 }

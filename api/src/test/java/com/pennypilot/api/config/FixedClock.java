@@ -1,6 +1,7 @@
 package com.pennypilot.api.config;
 
 import java.time.Instant;
+import java.util.Date;
 
 public class FixedClock implements Clock {
 
@@ -13,6 +14,11 @@ public class FixedClock implements Clock {
     @Override
     public Instant now() {
         return fixedTime;
+    }
+
+    @Override
+    public Date nowAsDate() {
+        return Date.from(fixedTime);
     }
 
     public void setTime(Instant newTime) {
