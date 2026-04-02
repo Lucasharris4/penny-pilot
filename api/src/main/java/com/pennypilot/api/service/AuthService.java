@@ -17,13 +17,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties authProperties;
     private final JwtService jwtService;
+    private final CategoryService categoryService;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       AuthProperties authProperties, JwtService jwtService) {
+                       AuthProperties authProperties, JwtService jwtService,
+                       CategoryService categoryService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authProperties = authProperties;
         this.jwtService = jwtService;
+        this.categoryService = categoryService;
     }
 
     public UserResponse register(RegisterRequest request) {
@@ -41,6 +44,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
 
         User saved = userRepository.save(user);
+        categoryService.seedDefaults(saved.getId());
         return UserResponse.from(saved);
     }
 

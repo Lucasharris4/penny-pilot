@@ -1,5 +1,6 @@
 package com.pennypilot.api.service;
 
+import com.pennypilot.api.config.CategoryProperties;
 import com.pennypilot.api.dto.CategoryResponse;
 import com.pennypilot.api.dto.CreateCategoryRequest;
 import com.pennypilot.api.dto.UpdateCategoryRequest;
@@ -7,6 +8,7 @@ import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.repository.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,11 +23,16 @@ class CategoryServiceTest {
     private CategoryService categoryService;
 
     private static final Long USER_ID = 1L;
+    private static final List<CategoryProperties.DefaultCategory> DEFAULT_CATEGORIES = List.of(
+            new CategoryProperties.DefaultCategory("Groceries", "\uD83D\uDED2", "#4CAF50", false),
+            new CategoryProperties.DefaultCategory("Subscriptions", "\uD83D\uDD04", "#607D8B", true)
+    );
 
     @BeforeEach
     void setUp() {
         categoryRepository = mock(CategoryRepository.class);
-        categoryService = new CategoryService(categoryRepository);
+        CategoryProperties props = new CategoryProperties(true, DEFAULT_CATEGORIES);
+        categoryService = new CategoryService(categoryRepository, props);
     }
 
     // --- list ---
@@ -189,6 +196,45 @@ class CategoryServiceTest {
 
         assertThrows(CategoryService.CategoryNotFoundException.class,
                 () -> categoryService.deleteCategory(USER_ID, 1L));
+    }
+
+    // --- seedDefaults ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void seedDefaults_createsConfiguredCategories() {
+        categoryService.seedDefaults(USER_ID);
+
+        ArgumentCaptor<List<Category>> captor = ArgumentCaptor.forClass(List.class);
+        verify(categoryRepository).saveAll(captor.capture());
+
+        List<Category> saved = captor.getValue();
+        assertEquals(2, saved.size());
+        assertEquals("Groceries", saved.get(0).getName());
+        assertEquals(USER_ID, saved.get(0).getUserId());
+        assertFalse(saved.get(0).isSubscription());
+        assertEquals("Subscriptions", saved.get(1).getName());
+        assertTrue(saved.get(1).isSubscription());
+    }
+
+    @Test
+    void seedDefaults_disabled_doesNothing() {
+        CategoryProperties disabledProps = new CategoryProperties(false, DEFAULT_CATEGORIES);
+        CategoryService disabledService = new CategoryService(categoryRepository, disabledProps);
+
+        disabledService.seedDefaults(USER_ID);
+
+        verify(categoryRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void seedDefaults_nullDefaults_doesNothing() {
+        CategoryProperties nullProps = new CategoryProperties(true, null);
+        CategoryService nullService = new CategoryService(categoryRepository, nullProps);
+
+        nullService.seedDefaults(USER_ID);
+
+        verify(categoryRepository, never()).saveAll(any());
     }
 
     // --- helpers ---

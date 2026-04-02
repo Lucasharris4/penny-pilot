@@ -27,6 +27,7 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
     private JwtService jwtService;
+    private CategoryService categoryService;
     private FixedClock clock;
 
     private static final Instant FIXED_TIME = Instant.now();
@@ -39,7 +40,8 @@ class AuthServiceTest {
         passwordEncoder = new BCryptPasswordEncoder();
         clock = new FixedClock(FIXED_TIME);
         jwtService = new JwtService(AUTH_PROPS, clock);
-        authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService);
+        categoryService = mock(CategoryService.class);
+        authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService, categoryService);
     }
 
     @Test
@@ -57,6 +59,7 @@ class AuthServiceTest {
         assertEquals(1L, response.id());
         assertEquals("user@example.com", response.email());
         assertEquals(FIXED_TIME, response.createdAt());
+        verify(categoryService).seedDefaults(1L);
     }
 
     @Test

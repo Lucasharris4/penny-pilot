@@ -1,5 +1,6 @@
 package com.pennypilot.api.service;
 
+import com.pennypilot.api.config.CategoryProperties;
 import com.pennypilot.api.dto.CategoryResponse;
 import com.pennypilot.api.dto.CreateCategoryRequest;
 import com.pennypilot.api.dto.UpdateCategoryRequest;
@@ -13,9 +14,31 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryProperties categoryProperties;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository, CategoryProperties categoryProperties) {
         this.categoryRepository = categoryRepository;
+        this.categoryProperties = categoryProperties;
+    }
+
+    public void seedDefaults(Long userId) {
+        if (!categoryProperties.seedOnRegistration() || categoryProperties.defaults() == null) {
+            return;
+        }
+
+        List<Category> categories = categoryProperties.defaults().stream()
+                .map(def -> {
+                    Category c = new Category();
+                    c.setUserId(userId);
+                    c.setName(def.name());
+                    c.setIcon(def.icon());
+                    c.setColor(def.color());
+                    c.setSubscription(def.isSubscription());
+                    return c;
+                })
+                .toList();
+
+        categoryRepository.saveAll(categories);
     }
 
     public List<CategoryResponse> listCategories(Long userId) {
