@@ -29,7 +29,7 @@ class AuthServiceTest {
     private JwtService jwtService;
     private FixedClock clock;
 
-    private static final Instant FIXED_TIME = Instant.parse("2026-04-01T12:00:00Z");
+    private static final Instant FIXED_TIME = Instant.now();
     private static final AuthProperties AUTH_PROPS =
             new AuthProperties(8, "test-secret-that-is-at-least-32-bytes-long!", 86400000);
 
