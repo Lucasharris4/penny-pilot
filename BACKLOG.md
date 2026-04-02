@@ -1,25 +1,25 @@
 # Backlog
 
 ## Epic: Project Scaffolding
-Status: Not Started
+Status: Complete
 
 ### Story: Initialize Spring Boot API project
 Set up the API project under `api/` with Gradle, Java 21, Spring Boot 3.x. Include dependencies for Spring Web, Spring Data JPA, SQLite dialect, and Spring Security. Configure `application.yml` with SQLite datasource pointing to `./data/pennypilot.db`. Add a health check endpoint at `GET /api/health`.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**: Use Spring Boot Actuator for health endpoint (standard `/actuator/health` path). SQLite dialect via `hibernate-community-dialects`. Spring Security filter chain permits all requests — Auth epic will lock it down. Include springdoc-openapi for Swagger UI. Controller test for the health endpoint.
 
 ### Story: Initialize React frontend project
 Set up the frontend under `frontend/` with Vite, React 18, TypeScript. Install Shadcn/ui, Tailwind CSS, and Recharts. Add a placeholder landing page that confirms the app loads.
-- [ ] Complete
+- [x] Complete
 
-> **Dev notes**: Tailwind CSS v4. Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
+> **Dev notes**: Tailwind CSS v4. React 19 (current stable from Vite template). Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
 
 ### Story: Docker setup
 Create Dockerfiles for both API and frontend. Create `docker-compose.yml` that builds and runs both services with a volume mount for `./data/`. Verify `docker-compose up --build` starts both services and the health check responds.
-- [ ] Complete
+- [x] Complete
 
-> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Commits: at least one per story, more if warranted.
+> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Docker healthcheck on API via /actuator/health. Frontend depends on API health.
 
 ---
 

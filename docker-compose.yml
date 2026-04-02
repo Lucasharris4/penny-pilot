@@ -1,0 +1,23 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      DB_PATH: /app/data/pennypilot.db
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
