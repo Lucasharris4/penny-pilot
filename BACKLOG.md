@@ -1,61 +1,5 @@
 # Backlog
 
-## Epic: Categories
-Status: 🔨 In Progress
-
-### Story: Category CRUD API
-REST endpoints for managing budget categories (create, list, update, delete). Include icon, color, and `is_subscription` flag. All operations scoped to the authenticated user.
-- [ ] Complete
-
-> **Dev notes**:
-> - **No subcategories.** `parent_category_id` dropped from the data model. Flat category list only — nesting adds UI and aggregation complexity for questionable value.
-> - **No account scoping.** Categories are user-level, not account-level. A category applies across all of a user's accounts. User ID comes from JWT, not the URL path.
-> - **Delete is a hard delete.** No soft-delete, no transaction reassignment. Transaction reassignment logic deferred to the Transactions epic (transactions with a deleted category will have a null `category_id`).
-> - **404 on unauthorized access.** If a user tries to GET/PUT/DELETE a category that doesn't belong to them, return 404 (not 403) to avoid leaking existence.
-> - **409 on duplicate name.** Reject creating a category with a name that already exists for the same user.
-> - **API contract:**
->   - `GET /api/categories` → 200, `Category[]`
->   - `POST /api/categories` → 201, `Category` — body: `{ name, icon?, color?, isSubscription? }`
->   - `PUT /api/categories/{id}` → 200, `Category` — body: `{ name, icon?, color?, isSubscription? }`
->   - `DELETE /api/categories/{id}` → 204
->   - Response shape: `{ id, name, icon, color, isSubscription }`
-
-### Story: Default category seeding
-On first registration, seed a set of default categories for the new user. Default list and seeding behavior are configurable via `application.yml`.
-- [ ] Complete
-
-> **Dev notes**:
-> - **Configurable via `application.yml`.** `app.categories.seed-on-registration: true/false` controls whether seeding happens. The default category list (names, icons, colors, isSubscription) is also defined in config, not hardcoded.
-> - **Triggered from `AuthService.register()`.** After user creation, calls `CategoryService.seedDefaults(userId)` if seeding is enabled.
-> - **Default categories:** Groceries, Dining, Transportation, Entertainment, Subscriptions (isSubscription=true), Shopping, Bills, Income, Other. Each with a sensible icon and color.
-> - **Expect this list to evolve.** The config-driven approach means updating defaults is a config change, not a code change. Changes only affect new registrations — existing users keep their categories.
-> - **No default category rules are seeded.** Users build their own rules over time. Merchant map / AI auto-categorization are stretch goals.
-
-### Story: Category rules API
-CRUD endpoints for category rules. Each rule has a `match_pattern` (glob-style, case-insensitive) and a `category_id`. Rules have a `priority` field to resolve conflicts. Scoped to the authenticated user.
-- [ ] Complete
-
-> **Dev notes**:
-> - **Glob patterns, not regex.** `*` matches any characters. Case-insensitive. e.g., `STARBUCKS*` matches "Starbucks #1234 Seattle WA".
-> - **Multiple rules can point to the same category.** e.g., `STARBUCKS*` → Coffee and `DUNKIN*` → Coffee. Each rule is its own row.
-> - **Priority resolves conflicts between rules pointing to different categories.** Higher priority wins. If a transaction matches both `*FOOD*` → Groceries (priority 1) and `UBER EATS*` → Dining (priority 10), Dining wins.
-> - **Pattern matching logic lives in the service layer** but is not exercised until the Transactions/Sync epic. This story delivers the CRUD and the matching utility with tests.
-> - **UI for rules will abstract away glob syntax.** Users won't see asterisks — they'll pick "contains" / "starts with" / "exact match" from a dropdown, and the backend constructs the glob. This UI lives in the Transactions epic.
-> - **No default rules seeded.** Manual categorization is the MVP experience. AI-assisted rule creation is a stretch goal.
-> - **API contract:**
->   - `GET /api/category-rules` → 200, `CategoryRule[]`
->   - `POST /api/category-rules` → 201, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
->   - `PUT /api/category-rules/{id}` → 200, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
->   - `DELETE /api/category-rules/{id}` → 204
->   - Response shape: `{ id, matchPattern, categoryId, categoryName, priority }`
-
-### ~~Story: Categories management UI~~
-~~Frontend page listing categories with icon, color, and subcategories. Create, edit, and delete categories. Manage category rules (add/edit/remove pattern-to-category mappings).~~
-
-> **Dev notes**: **Deferred.** No standalone categories management page for MVP. Category creation and assignment will be inline on the Transactions page (dropdown with "New..." option to create on the fly). This forces us to make the inline UX solid rather than building a separate page. Revisit if needed after Transactions epic.
-
----
-
 ## Epic: Transactions
 Status: Not Started
 
@@ -156,6 +100,62 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 - [ ] Complete
 
 ## Done
+
+## Epic: Categories ✅
+Status: Complete
+
+### Story: Category CRUD API
+REST endpoints for managing budget categories (create, list, update, delete). Include icon, color, and `is_subscription` flag. All operations scoped to the authenticated user.
+- [x] Complete
+
+> **Dev notes**:
+> - **No subcategories.** `parent_category_id` dropped from the data model. Flat category list only — nesting adds UI and aggregation complexity for questionable value.
+> - **No account scoping.** Categories are user-level, not account-level. A category applies across all of a user's accounts. User ID comes from JWT, not the URL path.
+> - **Delete is a hard delete.** No soft-delete, no transaction reassignment. Transaction reassignment logic deferred to the Transactions epic (transactions with a deleted category will have a null `category_id`).
+> - **404 on unauthorized access.** If a user tries to GET/PUT/DELETE a category that doesn't belong to them, return 404 (not 403) to avoid leaking existence.
+> - **409 on duplicate name.** Reject creating a category with a name that already exists for the same user.
+> - **API contract:**
+>   - `GET /api/categories` → 200, `Category[]`
+>   - `POST /api/categories` → 201, `Category` — body: `{ name, icon?, color?, isSubscription? }`
+>   - `PUT /api/categories/{id}` → 200, `Category` — body: `{ name, icon?, color?, isSubscription? }`
+>   - `DELETE /api/categories/{id}` → 204
+>   - Response shape: `{ id, name, icon, color, isSubscription }`
+
+### Story: Default category seeding
+On first registration, seed a set of default categories for the new user. Default list and seeding behavior are configurable via `application.yml`.
+- [x] Complete
+
+> **Dev notes**:
+> - **Configurable via `application.yml`.** `app.categories.seed-on-registration: true/false` controls whether seeding happens. The default category list (names, icons, colors, isSubscription) is also defined in config, not hardcoded.
+> - **Triggered from `AuthService.register()`.** After user creation, calls `CategoryService.seedDefaults(userId)` if seeding is enabled.
+> - **Default categories:** Groceries, Dining, Transportation, Entertainment, Subscriptions (isSubscription=true), Shopping, Bills, Income, Other. Each with a sensible icon and color.
+> - **Expect this list to evolve.** The config-driven approach means updating defaults is a config change, not a code change. Changes only affect new registrations — existing users keep their categories.
+> - **No default category rules are seeded.** Users build their own rules over time. Merchant map / AI auto-categorization are stretch goals.
+
+### Story: Category rules API
+CRUD endpoints for category rules. Each rule has a `match_pattern` (glob-style, case-insensitive) and a `category_id`. Rules have a `priority` field to resolve conflicts. Scoped to the authenticated user.
+- [x] Complete
+
+> **Dev notes**:
+> - **Glob patterns, not regex.** `*` matches any characters. Case-insensitive. e.g., `STARBUCKS*` matches "Starbucks #1234 Seattle WA".
+> - **Multiple rules can point to the same category.** e.g., `STARBUCKS*` → Coffee and `DUNKIN*` → Coffee. Each rule is its own row.
+> - **Priority resolves conflicts between rules pointing to different categories.** Higher priority wins. If a transaction matches both `*FOOD*` → Groceries (priority 1) and `UBER EATS*` → Dining (priority 10), Dining wins.
+> - **Pattern matching logic lives in the service layer** but is not exercised until the Transactions/Sync epic. This story delivers the CRUD and the matching utility with tests.
+> - **UI for rules will abstract away glob syntax.** Users won't see asterisks — they'll pick "contains" / "starts with" / "exact match" from a dropdown, and the backend constructs the glob. This UI lives in the Transactions epic.
+> - **No default rules seeded.** Manual categorization is the MVP experience. AI-assisted rule creation is a stretch goal.
+> - **API contract:**
+>   - `GET /api/category-rules` → 200, `CategoryRule[]`
+>   - `POST /api/category-rules` → 201, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
+>   - `PUT /api/category-rules/{id}` → 200, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
+>   - `DELETE /api/category-rules/{id}` → 204
+>   - Response shape: `{ id, matchPattern, categoryId, categoryName, priority }`
+
+### ~~Story: Categories management UI~~
+~~Frontend page listing categories with icon, color, and subcategories. Create, edit, and delete categories. Manage category rules (add/edit/remove pattern-to-category mappings).~~
+
+> **Dev notes**: **Deferred.** No standalone categories management page for MVP. Category creation and assignment will be inline on the Transactions page (dropdown with "New..." option to create on the fly). This forces us to make the inline UX solid rather than building a separate page. Revisit if needed after Transactions epic.
+
+---
 
 ## Epic: Project Scaffolding ✅
 Status: Complete 
