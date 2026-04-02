@@ -15,7 +15,7 @@ spring:
 app:
   auth:
     password-min-length: 8
-    jwt-secret: ${JWT_SECRET:default-dev-secret-change-in-production}
+    jwt-secret: ${JWT_SECRET:penny-pilot-default-dev-secret-key-change-me}
     jwt-expiration-ms: 86400000  # 24 hours
 
 management:

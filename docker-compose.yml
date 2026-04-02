@@ -7,7 +7,7 @@ services:
       - ./data:/app/data
     environment:
       DB_PATH: /app/data/pennypilot.db
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:-penny-pilot-default-dev-secret-key-change-me}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
