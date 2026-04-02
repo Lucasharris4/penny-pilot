@@ -12,6 +12,43 @@ spring:
       ddl-auto: update
     show-sql: false
 
+app:
+  auth:
+    password-min-length: 8
+    jwt-secret: ${JWT_SECRET:penny-pilot-default-dev-secret-key-change-me}
+    jwt-expiration-ms: 86400000  # 24 hours
+
+  categories:
+    seed-on-registration: true
+    defaults:
+      - name: Groceries
+        icon: "\uD83D\uDED2"    # shopping cart
+        color: "#4CAF50"         # green
+      - name: Dining
+        icon: "\uD83C\uDF7D\uFE0F"  # fork and knife
+        color: "#FF9800"              # orange
+      - name: Transportation
+        icon: "\uD83D\uDE97"    # car
+        color: "#2196F3"         # blue
+      - name: Entertainment
+        icon: "\uD83C\uDFAC"    # clapper board
+        color: "#9C27B0"         # purple
+      - name: Subscriptions
+        icon: "\uD83D\uDD04"    # refresh arrows
+        color: "#607D8B"         # blue-grey
+      - name: Shopping
+        icon: "\uD83D\uDECD\uFE0F"  # shopping bags
+        color: "#E91E63"              # pink
+      - name: Bills
+        icon: "\uD83D\uDCC4"    # page facing up
+        color: "#795548"         # brown
+      - name: Income
+        icon: "\uD83D\uDCB0"    # money bag
+        color: "#4CAF50"         # green
+      - name: Other
+        icon: "\uD83D\uDCE6"    # package
+        color: "#9E9E9E"         # grey
+
 management:
   endpoints:
     web:

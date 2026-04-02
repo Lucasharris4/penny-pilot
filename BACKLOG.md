@@ -1,70 +1,5 @@
 # Backlog
 
-## Epic: Project Scaffolding
-Status: Complete
-
-### Story: Initialize Spring Boot API project
-Set up the API project under `api/` with Gradle, Java 21, Spring Boot 3.x. Include dependencies for Spring Web, Spring Data JPA, SQLite dialect, and Spring Security. Configure `application.yml` with SQLite datasource pointing to `./data/pennypilot.db`. Add a health check endpoint at `GET /api/health`.
-- [x] Complete
-
-> **Dev notes**: Use Spring Boot Actuator for health endpoint (standard `/actuator/health` path). SQLite dialect via `hibernate-community-dialects`. Spring Security filter chain permits all requests — Auth epic will lock it down. Include springdoc-openapi for Swagger UI. Controller test for the health endpoint.
-
-### Story: Initialize React frontend project
-Set up the frontend under `frontend/` with Vite, React 18, TypeScript. Install Shadcn/ui, Tailwind CSS, and Recharts. Add a placeholder landing page that confirms the app loads.
-- [x] Complete
-
-> **Dev notes**: Tailwind CSS v4. React 19 (current stable from Vite template). Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
-
-### Story: Docker setup
-Create Dockerfiles for both API and frontend. Create `docker-compose.yml` that builds and runs both services with a volume mount for `./data/`. Verify `docker-compose up --build` starts both services and the health check responds.
-- [x] Complete
-
-> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Docker healthcheck on API via /actuator/health. Frontend depends on API health.
-
----
-
-## Epic: Auth
-Status: Not Started
-
-### Story: User registration endpoint
-`POST /api/auth/register` accepts username, password, and optional email. Passwords are hashed with bcrypt. Returns the created user (without password hash). Reject duplicate usernames.
-- [ ] Complete
-
-### Story: User login endpoint
-`POST /api/auth/login` accepts username and password, validates credentials, returns a JWT. `POST /api/auth/logout` invalidates the token.
-- [ ] Complete
-
-### Story: JWT auth filter
-Secure all `/api/*` endpoints except `/api/auth/*` and `/api/health`. Requests without a valid JWT receive 401. Every authenticated endpoint must scope queries to the logged-in user's ID.
-- [ ] Complete
-
-### Story: Login and registration UI
-Frontend pages for login and registration. After successful login, store JWT and redirect to dashboard. Show validation errors on bad input or failed login.
-- [ ] Complete
-
----
-
-## Epic: Categories
-Status: Not Started
-
-### Story: Category CRUD API
-REST endpoints for managing budget categories (create, list, update, delete). Support one level of nesting via `parent_category_id`. Include icon, color, and `is_subscription` flag. All operations scoped to the authenticated user.
-- [ ] Complete
-
-### Story: Default category seeding
-On first registration, seed a set of default categories for the new user: Groceries, Dining, Transportation, Entertainment, Subscriptions, Shopping, Bills, Income, Other.
-- [ ] Complete
-
-### Story: Category rules API
-CRUD endpoints for category rules. Each rule has a `match_pattern` (glob-style) and a `category_id`. Rules have a `priority` field to resolve conflicts. Scoped to the authenticated user.
-- [ ] Complete
-
-### Story: Categories management UI
-Frontend page listing categories with icon, color, and subcategories. Create, edit, and delete categories. Manage category rules (add/edit/remove pattern-to-category mappings).
-- [ ] Complete
-
----
-
 ## Epic: Transactions
 Status: Not Started
 
@@ -164,6 +99,116 @@ Comprehensive input validation on both API (reject bad data with clear error mes
 Ensure all pages work at common screen widths. Sidebar collapses on smaller screens. Tables become scrollable or stack on narrow viewports.
 - [ ] Complete
 
+## Done
+
+## Epic: Categories ✅
+Status: Complete
+
+### Story: Category CRUD API
+REST endpoints for managing budget categories (create, list, update, delete). Include icon and color. All operations scoped to the authenticated user.
+- [x] Complete
+
+> **Dev notes**:
+> - **No subcategories.** `parent_category_id` dropped from the data model. Flat category list only — nesting adds UI and aggregation complexity for questionable value.
+> - **No account scoping.** Categories are user-level, not account-level. A category applies across all of a user's accounts. User ID comes from JWT, not the URL path.
+> - **Delete is a hard delete.** No soft-delete, no transaction reassignment. Transaction reassignment logic deferred to the Transactions epic (transactions with a deleted category will have a null `category_id`).
+> - **404 on unauthorized access.** If a user tries to GET/PUT/DELETE a category that doesn't belong to them, return 404 (not 403) to avoid leaking existence.
+> - **409 on duplicate name.** Reject creating a category with a name that already exists for the same user.
+> - **API contract:**
+>   - `GET /api/categories` → 200, `Category[]`
+>   - `POST /api/categories` → 201, `Category` — body: `{ name, icon?, color? }`
+>   - `PUT /api/categories/{id}` → 200, `Category` — body: `{ name, icon?, color? }`
+>   - `DELETE /api/categories/{id}` → 204
+>   - Response shape: `{ id, name, icon, color }`
+
+### Story: Default category seeding
+On first registration, seed a set of default categories for the new user. Default list and seeding behavior are configurable via `application.yml`.
+- [x] Complete
+
+> **Dev notes**:
+> - **Configurable via `application.yml`.** `app.categories.seed-on-registration: true/false` controls whether seeding happens. The default category list (names, icons, colors) is also defined in config, not hardcoded.
+> - **Triggered from `AuthService.register()`.** After user creation, calls `CategoryService.seedDefaults(userId)` if seeding is enabled.
+> - **Default categories:** Groceries, Dining, Transportation, Entertainment, Subscriptions, Shopping, Bills, Income, Other. Each with a sensible icon and color.
+> - **Expect this list to evolve.** The config-driven approach means updating defaults is a config change, not a code change. Changes only affect new registrations — existing users keep their categories.
+> - **No default category rules are seeded.** Users build their own rules over time. Merchant map / AI auto-categorization are stretch goals.
+
+### Story: Category rules API
+CRUD endpoints for category rules. Each rule has a `match_pattern` (glob-style, case-insensitive) and a `category_id`. Rules have a `priority` field to resolve conflicts. Scoped to the authenticated user.
+- [x] Complete
+
+> **Dev notes**:
+> - **Glob patterns, not regex.** `*` matches any characters. Case-insensitive. e.g., `STARBUCKS*` matches "Starbucks #1234 Seattle WA".
+> - **Multiple rules can point to the same category.** e.g., `STARBUCKS*` → Coffee and `DUNKIN*` → Coffee. Each rule is its own row.
+> - **Priority resolves conflicts between rules pointing to different categories.** Higher priority wins. If a transaction matches both `*FOOD*` → Groceries (priority 1) and `UBER EATS*` → Dining (priority 10), Dining wins.
+> - **Pattern matching logic lives in the service layer** but is not exercised until the Transactions/Sync epic. This story delivers the CRUD and the matching utility with tests.
+> - **UI for rules will abstract away glob syntax.** Users won't see asterisks — they'll pick "contains" / "starts with" / "exact match" from a dropdown, and the backend constructs the glob. This UI lives in the Transactions epic.
+> - **No default rules seeded.** Manual categorization is the MVP experience. AI-assisted rule creation is a stretch goal.
+> - **API contract:**
+>   - `GET /api/category-rules` → 200, `CategoryRule[]`
+>   - `POST /api/category-rules` → 201, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
+>   - `PUT /api/category-rules/{id}` → 200, `CategoryRule` — body: `{ matchPattern, categoryId, priority }`
+>   - `DELETE /api/category-rules/{id}` → 204
+>   - Response shape: `{ id, matchPattern, categoryId, categoryName, priority }`
+
+### ~~Story: Categories management UI~~
+~~Frontend page listing categories with icon, color, and subcategories. Create, edit, and delete categories. Manage category rules (add/edit/remove pattern-to-category mappings).~~
+
+> **Dev notes**: **Deferred.** No standalone categories management page for MVP. Category creation and assignment will be inline on the Transactions page (dropdown with "New..." option to create on the fly). This forces us to make the inline UX solid rather than building a separate page. Revisit if needed after Transactions epic.
+
+---
+
+## Epic: Project Scaffolding ✅
+Status: Complete 
+
+### Story: Initialize Spring Boot API project
+Set up the API project under `api/` with Gradle, Java 21, Spring Boot 3.x. Include dependencies for Spring Web, Spring Data JPA, SQLite dialect, and Spring Security. Configure `application.yml` with SQLite datasource pointing to `./data/pennypilot.db`. Add a health check endpoint at `GET /api/health`.
+- [x] Complete
+
+> **Dev notes**: Use Spring Boot Actuator for health endpoint (standard `/actuator/health` path). SQLite dialect via `hibernate-community-dialects`. Spring Security filter chain permits all requests — Auth epic will lock it down. Include springdoc-openapi for Swagger UI. Controller test for the health endpoint.
+
+### Story: Initialize React frontend project
+Set up the frontend under `frontend/` with Vite, React 18, TypeScript. Install Shadcn/ui, Tailwind CSS, and Recharts. Add a placeholder landing page that confirms the app loads.
+- [x] Complete
+
+> **Dev notes**: Tailwind CSS v4. React 19 (current stable from Vite template). Shadcn/ui initialized but only install components as needed in future epics. Vite proxy `/api/*` to `http://localhost:8080`. Vitest configured with a smoke test.
+
+### Story: Docker setup
+Create Dockerfiles for both API and frontend. Create `docker-compose.yml` that builds and runs both services with a volume mount for `./data/`. Verify `docker-compose up --build` starts both services and the health check responds.
+- [x] Complete
+
+> **Dev notes**: API Dockerfile: multi-stage (Gradle build → JRE 21 slim). Frontend Dockerfile: multi-stage (npm build → nginx). Nginx serves static files and proxies `/api/*` to the api service. Docker healthcheck on API via /actuator/health. Frontend depends on API health.
+
+---
+
+## Epic: Auth ✅
+Status: Complete
+
+### Story: User registration endpoint
+`POST /api/auth/register` accepts email and password. Passwords are hashed with bcrypt. Returns the created user (without password hash). Reject duplicate emails.
+- [x] Complete
+
+> **Dev notes**: Email replaces username as the login identifier — no separate username field. USERS table: id, email (unique), password_hash (bcrypt, one-way), created_at. Password min 8 chars, configurable via application.yml. Response: `201 { id, email, createdAt }`. Errors: 400 (validation), 409 (duplicate email). springdoc annotations on controller. Service + controller tests.
+
+### Story: User login endpoint
+`POST /api/auth/login` accepts email and password, validates credentials, returns a JWT. `POST /api/auth/logout` is a no-op 200 (client discards token).
+- [x] Complete
+
+> **Dev notes**: JWT signed with JWT_SECRET env var, 24h expiry, contains user ID and email in claims. Uses `jjwt` library. 401 on bad credentials — same message for wrong email and wrong password (prevent enumeration). Logout has no server-side invalidation for MVP.
+
+### Story: JWT auth filter
+Secure all `/api/*` endpoints except `/api/auth/**` and `/actuator/health`. Requests without a valid JWT receive 401. Every authenticated endpoint must scope queries to the logged-in user's ID.
+- [x] Complete
+
+> **Dev notes**: Custom `JwtAuthenticationFilter` (OncePerRequestFilter). Reads `Authorization: Bearer <token>`. Also permit `/swagger-ui/**` and `/v3/api-docs/**`. `SecurityUtils.getCurrentUserId()` utility for downstream code. Returns 401 (not 403) via HttpStatusEntryPoint.
+
+### Story: Login and registration UI
+Frontend pages for login and registration. After successful login, store JWT and redirect to dashboard. Show validation errors on bad input or failed login.
+- [x] Complete
+
+> **Dev notes**: Install `react-router-dom`. Routes: `/login`, `/register`, `/dashboard` (placeholder). JWT stored in localStorage. Auth context/provider redirects unauthenticated users to `/login`. API client module at `src/lib/api.ts`. Auto-login after registration.
+
+---
+
 ---
 
 ## Stretch Goals (not part of MVP)
@@ -182,3 +227,4 @@ These are tracked here for future planning but will not be groomed or worked unt
 - OAuth / SSO support (Authelia, Keycloak)
 - Plaid integration as alternative to SimpleFIN
 - Mobile-responsive PWA
+- AI-assisted transaction categorization (analyze transaction history, suggest category rules, auto-categorize on first syncs)
