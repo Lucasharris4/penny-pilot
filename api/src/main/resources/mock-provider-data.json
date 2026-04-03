@@ -1,0 +1,79 @@
+{
+  "accounts": [
+    {
+      "accountId": "mock-checking-007",
+      "accountName": "Bond Checking",
+      "balanceCents": 524837
+    },
+    {
+      "accountId": "mock-savings-007",
+      "accountName": "Bond Savings",
+      "balanceCents": 1500000
+    }
+  ],
+  "transactions": [
+    {
+      "transactionId": "mock-txn-001",
+      "accountId": "mock-checking-007",
+      "amountCents": 4599,
+      "transactionType": "DEBIT",
+      "description": "Grocery purchase",
+      "merchantName": "Whole Foods",
+      "date": "2026-03-15"
+    },
+    {
+      "transactionId": "mock-txn-002",
+      "accountId": "mock-checking-007",
+      "amountCents": 3200,
+      "transactionType": "DEBIT",
+      "description": "Gas station",
+      "merchantName": "Shell",
+      "date": "2026-03-18"
+    },
+    {
+      "transactionId": "mock-txn-003",
+      "accountId": "mock-checking-007",
+      "amountCents": 1599,
+      "transactionType": "DEBIT",
+      "description": "Streaming subscription",
+      "merchantName": "Netflix",
+      "date": "2026-03-20"
+    },
+    {
+      "transactionId": "mock-txn-004",
+      "accountId": "mock-checking-007",
+      "amountCents": 8750,
+      "transactionType": "DEBIT",
+      "description": "Dinner",
+      "merchantName": "Olive Garden",
+      "date": "2026-03-22"
+    },
+    {
+      "transactionId": "mock-txn-005",
+      "accountId": "mock-checking-007",
+      "amountCents": 350000,
+      "transactionType": "CREDIT",
+      "description": "Payroll deposit",
+      "merchantName": "MI6 Payroll",
+      "date": "2026-03-25"
+    },
+    {
+      "transactionId": "mock-txn-006",
+      "accountId": "mock-savings-007",
+      "amountCents": 50000,
+      "transactionType": "CREDIT",
+      "description": "Transfer from checking",
+      "merchantName": "Bond Checking",
+      "date": "2026-03-26"
+    },
+    {
+      "transactionId": "mock-txn-007",
+      "accountId": "mock-savings-007",
+      "amountCents": 100000,
+      "transactionType": "CREDIT",
+      "description": "Payroll deposit",
+      "merchantName": "MI6 Payroll",
+      "date": "2026-03-25"
+    }
+  ]
+}
