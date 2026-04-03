@@ -46,6 +46,60 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface TransactionResponse {
+  id: number;
+  accountId: number;
+  categoryId: number | null;
+  categoryName: string;
+  amountCents: number;
+  transactionType: 'CREDIT' | 'DEBIT';
+  description: string;
+  merchantName: string | null;
+  date: string;
+  externalId: string | null;
+}
+
+export interface TransactionPage {
+  content: TransactionResponse[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface TransactionFilters {
+  startDate?: string;
+  endDate?: string;
+  categoryId?: number;
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+export interface UpdateTransactionRequest {
+  categoryId: number | null;
+  amountCents: number;
+  transactionType: 'CREDIT' | 'DEBIT';
+  description: string;
+  merchantName: string | null;
+  date: string;
+}
+
+export interface BulkCategorizeResponse {
+  updated: number;
+  invalidIds?: number[];
+}
+
+export interface CategoryResponse {
+  id: number;
+  name: string;
+  icon: string | null;
+  color: string | null;
+}
+
 export const api = {
   register(email: string, password: string): Promise<UserResponse> {
     return request('/auth/register', {
@@ -63,6 +117,46 @@ export const api = {
 
   logout(): Promise<void> {
     return request('/auth/logout', { method: 'POST' });
+  },
+
+  getTransactions(filters: TransactionFilters = {}): Promise<TransactionPage> {
+    const params = new URLSearchParams();
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.categoryId != null) params.set('categoryId', String(filters.categoryId));
+    if (filters.minAmount != null) params.set('minAmount', String(filters.minAmount));
+    if (filters.maxAmount != null) params.set('maxAmount', String(filters.maxAmount));
+    if (filters.search) params.set('search', filters.search);
+    if (filters.page != null) params.set('page', String(filters.page));
+    if (filters.size != null) params.set('size', String(filters.size));
+    if (filters.sort) params.set('sort', filters.sort);
+    const query = params.toString();
+    return request(`/transactions${query ? `?${query}` : ''}`);
+  },
+
+  updateTransaction(id: number, data: UpdateTransactionRequest): Promise<TransactionResponse> {
+    return request(`/transactions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  bulkCategorize(transactionIds: number[], categoryId: number): Promise<BulkCategorizeResponse> {
+    return request('/transactions/bulk-categorize', {
+      method: 'PUT',
+      body: JSON.stringify({ transactionIds, categoryId }),
+    });
+  },
+
+  getCategories(): Promise<CategoryResponse[]> {
+    return request('/categories');
+  },
+
+  createCategory(name: string, icon?: string, color?: string): Promise<CategoryResponse> {
+    return request('/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name, icon, color }),
+    });
   },
 };
 
