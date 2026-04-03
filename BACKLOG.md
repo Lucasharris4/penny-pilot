@@ -1,7 +1,16 @@
 # Backlog
 
-## Epic: Accounts & SimpleFIN Integration
+## Epic: Tech Debt
 Status: Not Started
+Priority: High
+
+### Story: Add frontend test coverage tooling
+Install `@vitest/coverage-v8` and configure Vitest to generate coverage reports. Establish a baseline coverage number for the frontend. Backend is at 91% — frontend currently has no coverage tooling.
+- [ ] Complete
+
+### Story: move Clock and DefaultClock
+Clock and Default clock are living in the config package currently. I want them to be moved to a package that better suites their purpose. Util seems like the best fit. We can make a decision during grooming what package would make the most sense. 
+- [ ] Complete
 
 ---
 
@@ -40,6 +49,8 @@ Status: Not Started
 ### Story: Dashboard API endpoints
 `GET /api/dashboard/summary` returns total income, total expenses, and net cash flow for a time range. `GET /api/dashboard/by-category` returns spending per category with amounts and percentages. `GET /api/dashboard/subscriptions` returns detected recurring charges with monthly total. `GET /api/dashboard/available-months` returns a list of months that have transaction data (used by the month selector).
 - [ ] Complete
+
+> **Note:** A `GET /api/transactions/summary` endpoint was previously implemented and removed during Sprint 2 (wasn't groomed). During grooming, evaluate whether the dashboard needs a dedicated summary endpoint or can compute summaries from existing transaction data on the frontend.
 
 ### Story: Dashboard UI — time range selection
 Default view on login shows the most recent month that has transaction data (not the current calendar month). Month selector dropdown populated from available-months endpoint. Selecting a month with no data shows "No data for [Month Year]" message. Custom date range picker with presets (Quarter, Year). All dashboard components update when the range changes.

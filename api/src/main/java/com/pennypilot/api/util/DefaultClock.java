@@ -1,4 +1,4 @@
-package com.pennypilot.api.config;
+package com.pennypilot.api.util;
 
 import org.springframework.stereotype.Component;
 

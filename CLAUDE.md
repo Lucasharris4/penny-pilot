@@ -92,3 +92,12 @@ cd frontend && npm test
 - Don't add features beyond what the current story asks for
 - Don't add comments or docstrings to code you didn't change
 - If a story is ambiguous and the spec doesn't clarify, ask — don't assume
+
+## Retro Learnings
+
+- **Confidence levels should reflect full session cost.** Factor in grooming discussion, review cycles, and back-and-forth — not just implementation complexity. A "High confidence, 1 story" estimate undersells a story that requires significant design discussion or multiple review rounds.
+- **Build reusable test utilities when patterns emerge.** The authenticated MockMvc helper pattern (mock `jwtService.isValid()` + `jwtService.parseToken()` with a fake Bearer token) is duplicated across controller tests. Extract shared test setup when the same boilerplate appears in 2+ test classes.
+- **JDK 21 is the project target (LTS).** Gradle 8.13 cannot parse JDK 25 version strings. If the system default Java differs, use `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home` override.
+- **Run `npm run build` (not just `tsc --noEmit`) before committing frontend.** The Docker build uses `tsc -b` which enforces `verbatimModuleSyntax` — type-only imports are required. `tsc --noEmit` doesn't catch this. Always run the full production build to match what Docker will do.
+- **Never push directly to main.** Even small fixes get a branch and PR. The user reviews all changes before they hit main.
+- **Only implement what was explicitly agreed to in grooming.** Don't bundle extra stories or endpoints that weren't discussed. If it's in the backlog but wasn't groomed for this sprint, it doesn't ship this sprint.
