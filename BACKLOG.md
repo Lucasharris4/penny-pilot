@@ -1,33 +1,63 @@
 # Backlog
 
-## Epic: Tech Debt
-Status: Not Started
-Priority: High
-
-### Story: Add frontend test coverage tooling
-Install `@vitest/coverage-v8` and configure Vitest to generate coverage reports. Establish a baseline coverage number for the frontend. Backend is at 91% — frontend currently has no coverage tooling.
-- [ ] Complete
-
-### Story: move Clock and DefaultClock
-Clock and Default clock are living in the config package currently. I want them to be moved to a package that better suites their purpose. Util seems like the best fit. We can make a decision during grooming what package would make the most sense. 
-- [ ] Complete
-
----
-
 ## Epic: Accounts & SimpleFIN Integration
-Status: Not Started
+Status: In progress 🔄
 
-### Story: TransactionProvider interface and MockProvider
+### Story: TransactionProvider interface and MockProvider 
 Define the `TransactionProvider` interface with methods for fetching accounts and transactions. Implement `MockProvider` with preset fake data scenarios (normal spending, refunds, duplicates, zero-amount, missing merchant names). MockProvider should be selectable as a provider type when linking an account.
-- [ ] Complete
+- [x] Complete ✅
+
+> **Dev notes**:
+> - **Provider DTOs live in `dto.provider`** — `ProviderAccount` and `ProviderTransaction` are records, not entities. Each provider maps its third-party model into these shared DTOs (adapter pattern). Services never see provider-specific data models.
+> - **MockProvider** loads James Bond test data from `mock-provider-data.json` (2 accounts, 7 transactions). `@Component` for now — will need a factory or qualifier when SimpleFINProvider arrives to select by `ProviderType`.
+> - **Account entity fleshed out** with `providerType`, `providerAccountId`, `accountName`, `balanceCents`, `lastSyncedAt`.
+> - **Provider selection design decision (pending):** Provider type should be chosen at registration (SimpleFIN, Plaid, Manual CSV, Mock). Mock only available in controlled test environments (behind env flag like `ENABLE_MOCK_PROVIDER=true`). Provider can be changed later in Settings. Groom this when working on the Onboarding/Settings stories.
 
 ### Story: Account CRUD API
-REST endpoints for linked bank accounts. `POST /api/accounts` to link a new account (with provider type and config). `GET /api/accounts` to list accounts with balance and last sync time. `DELETE /api/accounts/{id}` to unlink.
+REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accounts from the provider and persists them. `GET /api/accounts` lists accounts with balance and last sync time. `DELETE /api/accounts/{id}` unlinks an account and cascade-deletes its transactions.
 - [ ] Complete
 
+> **Dev notes**:
+> - **New `Provider` entity + lookup table.** Seeded on startup: MOCK, SIMPLEFIN, PLAID. `providers` table: `id`, `name`, `description`. `accounts.provider_id` FK replaces the `providerType` enum column on the Account entity. `ProviderType` enum still exists in code for programmatic reference, but DB relationship is normalized.
+> - **`POST /api/accounts/link`** — body: `{ providerId }`. Resolves provider, calls `provider.fetchAccounts()`, creates one `Account` row per returned `ProviderAccount`. Returns `List<AccountResponse>` (201). Rejects if user already has linked accounts (one provider per user for MVP).
+> - **`GET /api/accounts`** → 200, `List<AccountResponse>`. Response shape: `{ id, providerId, providerName, providerAccountId, accountName, balanceCents, lastSyncedAt }`.
+> - **`DELETE /api/accounts/{id}`** → 204. Cascade-deletes all transactions for that account. 404 if not found or not owned by user.
+> - **No `PUT`.** Account data comes from the provider — nothing user-editable.
+> - **Provider resolution:** `providerId` → lookup `Provider` entity → map `provider.name` to `ProviderType` enum → switch to correct `TransactionProvider` Spring bean. Simple switch for now (only MOCK active).
+> - **New classes:** `Provider` entity, `ProviderRepository`, `ProviderSeeder` (ApplicationRunner), `AccountRepository`, `AccountService`, `AccountController`, `LinkAccountsRequest` DTO, `AccountResponse` DTO, `AccountNotFoundException`.
+> - **`AccountRepository`:** `findByUserId`, `findByIdAndUserId`, `existsByUserId` (for duplicate-link prevention).
+> - **Tests:** `AccountServiceTest` (plain JUnit, mocked repos, real MockProvider), `AccountControllerTest` (`@WebMvcTest`, stubbed service).
+
 ### Story: Sync endpoint and pipeline
-`POST /api/accounts/{id}/sync` triggers a sync. Pulls transactions from the provider, deduplicates by `external_id`, applies auto-categorization (merchant name map + user category rules), detects recurring transactions, and persists new transactions.
+`POST /api/accounts/{id}/sync` triggers a sync for a single account. Pulls transactions from the provider, deduplicates by `external_id` (updates if data changed), applies auto-categorization via user's category rules, and persists new/updated transactions. Also serves as the foundation for scheduled background sync.
 - [ ] Complete
+
+> **Dev notes**:
+> - **Endpoint:** `POST /api/accounts/{id}/sync` → 200, `SyncResponse { transactionsAdded, transactionsUpdated, transactionsSkipped, accountBalanceCents, syncedAt }`.
+> - **Pipeline steps:**
+>   1. Load `Account` by id + userId → 404 if not found/not owned
+>   2. Resolve `TransactionProvider` by account's provider (same resolution as Account CRUD)
+>   3. `provider.fetchTransactions(providerAccountId, sinceDate)` — sinceDate = `lastSyncedAt` or epoch if never synced
+>   4. `provider.fetchAccounts()` → find matching account by `providerAccountId` → update `account.balanceCents` (SimpleFIN returns all accounts in one call anyway; for MockProvider filter client-side)
+>   5. Batch-load existing `externalId`s for this account from DB (efficient Set lookup)
+>   6. For each provider transaction:
+>      - externalId exists + data matches → **skip**
+>      - externalId exists + data differs → **update** existing transaction
+>      - new → auto-categorize via `CategoryRuleService.findMatchingCategoryId(rules, merchantName)` (merchant name only, no description fallback), then **create**
+>   7. Batch persist new/updated transactions
+>   8. Update `account.lastSyncedAt`
+>   9. Return `SyncResponse`
+> - **No merchant name map.** Categorization uses only user's `CategoryRule`s (seeded defaults + user-created). Built-in merchant map deferred.
+> - **No recurring transaction detection.** Users categorize as "Subscription"/"Recurring" manually. `is_recurring` field not needed.
+> - **Dedup query:** `TransactionRepository.findByAccountIdAndExternalIdIn(Long accountId, Collection<String> externalIds)` — returns existing transactions for comparison. Batch lookup, not per-transaction.
+> - **Sync triggers (implement in-app for now):**
+>   1. **Manual:** `POST /api/accounts/{id}/sync` escape hatch for users who need fresh data
+>   2. **On login:** trigger sync if `lastSyncedAt` > 1 hour stale (configurable)
+>   3. **Scheduled:** `@Scheduled` cron job (e.g., daily 2 AM) syncs all users' accounts. Configurable via `application.yml`.
+> - **Design for parallelism:** `syncAccount(accountId)` must be a self-contained, stateless unit of work so the scheduled job can process many users' accounts concurrently (thread pool) in the future.
+> - **Error handling:** Provider failures (network, auth) return 502 with error message. Scheduled sync logs errors per-account and continues to next account.
+> - **New classes:** `SyncService`, `SyncResponse` DTO. Sync endpoint can live on `AccountController` (nested resource pattern: `/api/accounts/{id}/sync`).
+> - **Tests:** `SyncServiceTest` (plain JUnit, mocked repos + mocked provider, real `CategoryRuleService` + real `GlobMatcher`), controller test for sync endpoint.
 
 ### Story: SimpleFIN provider implementation
 Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup token for access URL. Fetch accounts and transactions from the access URL. Map SimpleFIN data to internal models.
@@ -95,6 +125,20 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 - [ ] Complete
 
 ## Done
+
+## Epic: Tech Debt 
+Status: Complete ✅
+Priority: High
+
+### Story: Add frontend test coverage tooling
+Install `@vitest/coverage-v8` and configure Vitest to generate coverage reports. Establish a baseline coverage number for the frontend. Backend is at 91% — frontend currently has no coverage tooling.
+- [x] Complete
+
+### Story: move Clock and DefaultClock
+Clock and Default clock are living in the config package currently. I want them to be moved to a package that better suites their purpose. Util seems like the best fit. We can make a decision during grooming what package would make the most sense. 
+- [x] Complete
+
+---
 
 ## Epic: Tech Debt ✅
 Status: Complete
@@ -283,3 +327,4 @@ These are tracked here for future planning but will not be groomed or worked unt
 - Plaid integration as alternative to SimpleFIN
 - Mobile-responsive PWA
 - AI-assisted transaction categorization (analyze transaction history, suggest category rules, auto-categorize on first syncs)
+- Break scheduled sync (nightly job) into its own container/service — shares DB and sync logic but scales independently, no impact on user-facing API performance. Worker pattern for multi-user scale.
