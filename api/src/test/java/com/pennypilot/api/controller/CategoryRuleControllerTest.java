@@ -1,5 +1,7 @@
 package com.pennypilot.api.controller;
 
+import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.config.FixedClock;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.dto.category.CategoryRuleResponse;
@@ -7,16 +9,18 @@ import com.pennypilot.api.dto.category.CreateCategoryRuleRequest;
 import com.pennypilot.api.dto.category.UpdateCategoryRuleRequest;
 import com.pennypilot.api.service.CategoryRuleService;
 import com.pennypilot.api.service.JwtService;
-import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -26,8 +30,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryRuleController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CategoryRuleControllerTest.JwtTestConfig.class})
 class CategoryRuleControllerTest {
+
+    @TestConfiguration
+    static class JwtTestConfig {
+        @Bean
+        JwtService jwtService() {
+            AuthProperties props = new AuthProperties(8, "test-secret-key-that-is-long-enough-for-hmac-sha", 86400000L);
+            return new JwtService(props, new FixedClock(Instant.now()));
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -35,18 +48,14 @@ class CategoryRuleControllerTest {
     @MockitoBean
     private CategoryRuleService categoryRuleService;
 
-    @MockitoBean
+    @Autowired
     private JwtService jwtService;
 
-    private static final String FAKE_TOKEN = "fake-jwt-token";
+    private String token;
 
     @BeforeEach
     void setUp() {
-        Claims claims = mock(Claims.class);
-        when(claims.getSubject()).thenReturn("1");
-        when(claims.get("email", String.class)).thenReturn("user@example.com");
-        when(jwtService.isValid(FAKE_TOKEN)).thenReturn(true);
-        when(jwtService.parseToken(FAKE_TOKEN)).thenReturn(claims);
+        token = jwtService.generateToken(1L, "user@example.com");
     }
 
     // --- list ---
@@ -58,7 +67,7 @@ class CategoryRuleControllerTest {
         ));
 
         mockMvc.perform(get("/api/category-rules")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].matchPattern").value("STARBUCKS*"))
@@ -79,7 +88,7 @@ class CategoryRuleControllerTest {
                 .thenReturn(new CategoryRuleResponse(1L, "STARBUCKS*", 5L, "Coffee", 10));
 
         mockMvc.perform(post("/api/category-rules")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "STARBUCKS*", "categoryId": 5, "priority": 10}
@@ -92,7 +101,7 @@ class CategoryRuleControllerTest {
     @Test
     void createRule_blankPattern_returns400() throws Exception {
         mockMvc.perform(post("/api/category-rules")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "", "categoryId": 5, "priority": 10}
@@ -103,7 +112,7 @@ class CategoryRuleControllerTest {
     @Test
     void createRule_missingCategoryId_returns400() throws Exception {
         mockMvc.perform(post("/api/category-rules")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "STARBUCKS*", "priority": 10}
@@ -117,7 +126,7 @@ class CategoryRuleControllerTest {
                 .thenThrow(new CategoryRuleService.CategoryNotFoundException(99L));
 
         mockMvc.perform(post("/api/category-rules")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "STARBUCKS*", "categoryId": 99, "priority": 10}
@@ -134,7 +143,7 @@ class CategoryRuleControllerTest {
                 .thenReturn(new CategoryRuleResponse(1L, "DUNKIN*", 6L, "Dining", 5));
 
         mockMvc.perform(put("/api/category-rules/1")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "DUNKIN*", "categoryId": 6, "priority": 5}
@@ -149,7 +158,7 @@ class CategoryRuleControllerTest {
                 .thenThrow(new CategoryRuleService.RuleNotFoundException(99L));
 
         mockMvc.perform(put("/api/category-rules/99")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"matchPattern": "DUNKIN*", "categoryId": 5, "priority": 5}
@@ -163,7 +172,7 @@ class CategoryRuleControllerTest {
     @Test
     void deleteRule_returns204() throws Exception {
         mockMvc.perform(delete("/api/category-rules/1")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
     }
 
@@ -173,7 +182,7 @@ class CategoryRuleControllerTest {
                 .when(categoryRuleService).deleteRule(1L, 99L);
 
         mockMvc.perform(delete("/api/category-rules/99")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
     }

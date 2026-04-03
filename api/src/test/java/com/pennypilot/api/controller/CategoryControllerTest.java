@@ -1,5 +1,7 @@
 package com.pennypilot.api.controller;
 
+import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.config.FixedClock;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.dto.category.CategoryResponse;
@@ -7,16 +9,18 @@ import com.pennypilot.api.dto.category.CreateCategoryRequest;
 import com.pennypilot.api.dto.category.UpdateCategoryRequest;
 import com.pennypilot.api.service.CategoryService;
 import com.pennypilot.api.service.JwtService;
-import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,8 +31,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CategoryControllerTest.JwtTestConfig.class})
 class CategoryControllerTest {
+
+    @TestConfiguration
+    static class JwtTestConfig {
+        @Bean
+        JwtService jwtService() {
+            AuthProperties props = new AuthProperties(8, "test-secret-key-that-is-long-enough-for-hmac-sha", 86400000L);
+            return new JwtService(props, new FixedClock(Instant.now()));
+        }
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,18 +49,14 @@ class CategoryControllerTest {
     @MockitoBean
     private CategoryService categoryService;
 
-    @MockitoBean
+    @Autowired
     private JwtService jwtService;
 
-    private static final String FAKE_TOKEN = "fake-jwt-token";
+    private String token;
 
     @BeforeEach
     void setUp() {
-        Claims claims = mock(Claims.class);
-        when(claims.getSubject()).thenReturn("1");
-        when(claims.get("email", String.class)).thenReturn("user@example.com");
-        when(jwtService.isValid(FAKE_TOKEN)).thenReturn(true);
-        when(jwtService.parseToken(FAKE_TOKEN)).thenReturn(claims);
+        token = jwtService.generateToken(1L, "user@example.com");
     }
 
     // --- list ---
@@ -60,7 +69,7 @@ class CategoryControllerTest {
         ));
 
         mockMvc.perform(get("/api/categories")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].id").value(1))
@@ -82,7 +91,7 @@ class CategoryControllerTest {
                 .thenReturn(new CategoryResponse(1L, "Coffee", "\u2615", "#8B4513"));
 
         mockMvc.perform(post("/api/categories")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Coffee", "icon": "\\u2615", "color": "#8B4513"}
@@ -95,7 +104,7 @@ class CategoryControllerTest {
     @Test
     void createCategory_blankName_returns400() throws Exception {
         mockMvc.perform(post("/api/categories")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "", "icon": null, "color": null}
@@ -109,7 +118,7 @@ class CategoryControllerTest {
                 .thenThrow(new CategoryService.CategoryNameExistsException("Groceries"));
 
         mockMvc.perform(post("/api/categories")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Groceries"}
@@ -126,7 +135,7 @@ class CategoryControllerTest {
                 .thenReturn(new CategoryResponse(1L, "Groceries", "\uD83C\uDF4E", "#FF0000"));
 
         mockMvc.perform(put("/api/categories/1")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Groceries", "icon": "\uD83C\uDF4E", "color": "#FF0000"}
@@ -142,7 +151,7 @@ class CategoryControllerTest {
                 .thenThrow(new CategoryService.CategoryNotFoundException(99L));
 
         mockMvc.perform(put("/api/categories/99")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN)
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "Groceries"}
@@ -156,7 +165,7 @@ class CategoryControllerTest {
     @Test
     void deleteCategory_returns204() throws Exception {
         mockMvc.perform(delete("/api/categories/1")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
     }
 
@@ -166,7 +175,7 @@ class CategoryControllerTest {
                 .when(categoryService).deleteCategory(1L, 99L);
 
         mockMvc.perform(delete("/api/categories/99")
-                        .header("Authorization", "Bearer " + FAKE_TOKEN))
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
     }
