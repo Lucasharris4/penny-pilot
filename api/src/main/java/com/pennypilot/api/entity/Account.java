@@ -15,9 +15,9 @@ public class Account {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "provider_type", nullable = false)
-    private ProviderType providerType;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "provider_id", nullable = false)
+    private Provider provider;
 
     @Column(name = "provider_account_id", nullable = false)
     private String providerAccountId;
@@ -47,12 +47,12 @@ public class Account {
         this.userId = userId;
     }
 
-    public ProviderType getProviderType() {
-        return providerType;
+    public Provider getProvider() {
+        return provider;
     }
 
-    public void setProviderType(ProviderType providerType) {
-        this.providerType = providerType;
+    public void setProvider(Provider provider) {
+        this.provider = provider;
     }
 
     public String getProviderAccountId() {
