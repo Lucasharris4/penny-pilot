@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { api, TransactionResponse, CategoryResponse, TransactionFilters } from '@/lib/api';
+import { api } from '@/lib/api';
+import type { TransactionResponse, CategoryResponse, TransactionFilters } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -276,7 +277,7 @@ export default function TransactionsPage() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="category-filter">Category</Label>
-            <Select value={categoryFilter} onValueChange={v => { setCategoryFilter(v === '__all__' ? '' : v); setPage(0); }}>
+            <Select value={categoryFilter} onValueChange={v => { setCategoryFilter(!v || v === '__all__' ? '' : v); setPage(0); }}>
               <SelectTrigger className="w-40" id="category-filter">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
@@ -391,7 +392,7 @@ export default function TransactionsPage() {
                         {editingId === txn.id ? (
                           <Select
                             value={txn.categoryId != null ? String(txn.categoryId) : '__none__'}
-                            onValueChange={v => handleCategoryChange(txn.id, v)}
+                            onValueChange={v => v && handleCategoryChange(txn.id, v)}
                           >
                             <SelectTrigger className="w-36 h-8">
                               <SelectValue />
@@ -469,7 +470,7 @@ export default function TransactionsPage() {
           </DialogHeader>
           <div className="space-y-3 py-4">
             <Label>Category</Label>
-            <Select value={bulkCategoryId} onValueChange={setBulkCategoryId}>
+            <Select value={bulkCategoryId} onValueChange={v => setBulkCategoryId(v ?? '')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
