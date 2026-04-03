@@ -1,7 +1,7 @@
 package com.pennypilot.api.controller;
 
 import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.config.FixedClock;
+import com.pennypilot.api.util.FixedClock;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.dto.category.CategoryResponse;

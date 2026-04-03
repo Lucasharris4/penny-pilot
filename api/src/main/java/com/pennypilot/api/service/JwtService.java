@@ -1,7 +1,7 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.config.Clock;
+import com.pennypilot.api.util.Clock;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
