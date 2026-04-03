@@ -1,23 +1,7 @@
 # Backlog
 
-## Epic: Transactions
+## Epic: Accounts & SimpleFIN Integration
 Status: Not Started
-
-### Story: Transaction CRUD API
-REST endpoints for transactions. `GET /api/transactions` supports filtering by date range, category, account, amount range, and text search on description/merchant. Supports pagination and sorting by date, amount, or category. `PUT /api/transactions/{id}` for updating (primarily category assignment).
-- [ ] Complete
-
-### Story: Bulk categorization endpoint
-`PUT /api/transactions/bulk-categorize` accepts a list of transaction IDs and a category ID. Assigns the category to all specified transactions in one operation.
-- [ ] Complete
-
-### Story: Transaction summary endpoint
-`GET /api/transactions/summary` returns aggregated spending by category for a given time range. Used by the dashboard and reports.
-- [ ] Complete
-
-### Story: Transactions list UI
-Frontend page showing a paginated, filterable, sortable list of transactions. Inline category assignment (click a transaction's category to change it). Bulk select and categorize multiple transactions at once.
-- [ ] Complete
 
 ---
 
@@ -100,6 +84,76 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 - [ ] Complete
 
 ## Done
+
+## Epic: Tech Debt ✅
+Status: Complete
+
+### Story: Use real JwtService in controller tests
+Replace `@MockitoBean JwtService` with a real `JwtService` instance in all controller tests. Construct with test `AuthProperties`, `FixedClock`, and generate real JWT tokens instead of mocking `isValid()`/`parseToken()`. Removes fragile mock setup and aligns controller tests with the "mock only at the edges" philosophy — JwtService has no external dependencies, so there's nothing to mock.
+- [x] Complete
+
+> **Dev notes**:
+> - Each `@WebMvcTest` class uses a static `@TestConfiguration` inner class to provide a real `JwtService` bean with test `AuthProperties` and `FixedClock(Instant.now())`.
+> - `JwtAuthFilterTest` already used a real `JwtService` via `@SpringBootTest` — no changes needed there.
+> - `FixedClock` must use `Instant.now()` (not a fixed past time) because JJWT's parser uses the system clock for expiration checks.
+
+---
+
+## Epic: Transactions ✅
+Status: Complete
+
+### Story: Transaction CRUD API
+REST endpoints for transactions. `GET /api/transactions` supports filtering by date range, category, account, amount range, and text search on description/merchant. Supports pagination and sorting by date, amount, or category. `PUT /api/transactions/{id}` for full transaction editing.
+- [x] Complete
+
+> **Dev notes**:
+> - **Stub `Account` entity** created (just `id` + `user_id`) for the FK — Accounts epic will flesh it out.
+> - **No POST/DELETE endpoints.** Transactions are created exclusively by the sync pipeline. No manual creation or deletion for MVP.
+> - **`transaction_type` column** uses `@Enumerated(EnumType.STRING)` — stored as TEXT "CREDIT"/"DEBIT" in SQLite, maps to Java enum `TransactionType`.
+> - **`amount_cents` is unsigned** (always positive). Credit vs debit determined by `transaction_type`, not sign.
+> - **`external_id` nullable** — allows non-SimpleFIN sources (mock provider, CSV import).
+> - **`is_recurring` dropped** — deferred; overlap with category-based tracking.
+> - **Filtering** uses JPA `Specification` for dynamic query building (date range, category, amount range, text search on description/merchant).
+> - **Uncategorized transactions** show `categoryName: "Other"` in responses.
+> - **API contract:**
+>   - `GET /api/transactions?page=0&size=20&sort=date,desc&startDate=...&endDate=...&categoryId=...&minAmount=...&maxAmount=...&search=...` → 200, `Page<Transaction>`
+>   - `PUT /api/transactions/{id}` → 200, `Transaction` — body: `{ categoryId?, amountCents, transactionType, description, merchantName?, date }`
+>   - Response shape: `{ id, accountId, categoryId, categoryName, amountCents, transactionType, description, merchantName, date, externalId }`
+
+### Story: Bulk categorization endpoint
+`PUT /api/transactions/bulk-categorize` accepts a list of transaction IDs and a category ID. Assigns the category to all specified transactions in one operation.
+- [x] Complete
+
+> **Dev notes**:
+> - **All-or-nothing validation.** All transaction IDs must belong to the user; if any are invalid, returns 400 with the invalid IDs and no updates are made.
+> - **`@Transactional`** wraps the operation — DB failure rolls back all changes.
+> - **API contract:** `PUT /api/transactions/bulk-categorize` — body: `{ transactionIds: Long[], categoryId: Long }` → 200 `{ updated: int }` or 400 `{ updated: 0, invalidIds: Long[] }`
+
+### Story: Transaction summary endpoint
+`GET /api/transactions/summary` returns aggregated spending by category for a given time range. Used by the dashboard and reports.
+- [x] Complete
+
+> **Dev notes**:
+> - Groups transactions by category, returns `totalCents` and `transactionCount` per group.
+> - Uncategorized transactions grouped under `categoryName: "Other"` with null `categoryId`.
+> - Includes both CREDIT and DEBIT transactions — frontend filters by type as needed.
+> - **API contract:** `GET /api/transactions/summary?startDate=...&endDate=...` → 200, `[{ categoryId, categoryName, categoryColor, categoryIcon, totalCents, transactionCount }]`
+
+### Story: Transactions list UI
+Frontend page showing a paginated, filterable, sortable list of transactions. Inline category assignment (click a transaction's category to change it). Bulk select and categorize multiple transactions at once.
+- [x] Complete
+
+> **Dev notes**:
+> - **Route:** `/transactions` — added to React Router in `App.tsx`.
+> - **Filters:** text search (description/merchant), category dropdown, date range pickers. Sorting by date or amount (click column headers).
+> - **Inline category edit:** click category badge → dropdown with existing categories + "New Category..." option.
+> - **Bulk categorize:** checkbox selection → "Set Category" button → dialog with category picker.
+> - **New category dialog:** accessible from both inline edit and bulk flows. Creates category on the fly, then applies it to the pending transaction(s).
+> - **Empty state:** "No transactions found — Transactions will appear here after syncing an account."
+> - **Shadcn components installed:** select, checkbox, dialog, badge, table.
+> - **API client extended** (`api.ts`): `getTransactions`, `updateTransaction`, `bulkCategorize`, `getTransactionSummary`, `getCategories`, `createCategory`.
+
+---
 
 ## Epic: Categories ✅
 Status: Complete
