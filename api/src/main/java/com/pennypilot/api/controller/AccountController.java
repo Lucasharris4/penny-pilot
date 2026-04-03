@@ -4,6 +4,7 @@ import com.pennypilot.api.config.SecurityUtils;
 import com.pennypilot.api.dto.account.AccountResponse;
 import com.pennypilot.api.dto.account.LinkAccountsRequest;
 import com.pennypilot.api.provider.ProviderResolver;
+import com.pennypilot.api.provider.SimpleFINProvider;
 import com.pennypilot.api.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,7 +35,7 @@ public class AccountController {
     @ApiResponse(responseCode = "409", description = "Accounts already linked")
     public ResponseEntity<List<AccountResponse>> linkAccounts(@Valid @RequestBody LinkAccountsRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
-        List<AccountResponse> accounts = accountService.linkAccounts(userId, request.providerId());
+        List<AccountResponse> accounts = accountService.linkAccounts(userId, request.providerId(), request.setupToken());
         return ResponseEntity.status(HttpStatus.CREATED).body(accounts);
     }
 
@@ -77,6 +78,24 @@ public class AccountController {
     @ExceptionHandler(ProviderResolver.ProviderNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleProviderNotSupported(ProviderResolver.ProviderNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccountService.SetupTokenRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleSetupTokenRequired(AccountService.SetupTokenRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SimpleFINProvider.ProviderAuthException.class)
+    public ResponseEntity<ErrorResponse> handleProviderAuth(SimpleFINProvider.ProviderAuthException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SimpleFINProvider.ProviderConnectionException.class)
+    public ResponseEntity<ErrorResponse> handleProviderConnection(SimpleFINProvider.ProviderConnectionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 

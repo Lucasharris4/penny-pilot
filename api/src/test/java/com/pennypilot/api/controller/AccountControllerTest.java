@@ -62,7 +62,7 @@ class AccountControllerTest {
 
     @Test
     void linkAccounts_returns201() throws Exception {
-        when(accountService.linkAccounts(eq(1L), eq(1L))).thenReturn(List.of(
+        when(accountService.linkAccounts(eq(1L), eq(1L), any())).thenReturn(List.of(
                 new AccountResponse(1L, 1L, ProviderType.MOCK, "acct-001", "Checking", 150000, null),
                 new AccountResponse(2L, 1L, ProviderType.MOCK, "acct-002", "Savings", 500000, null)
         ));
@@ -95,7 +95,7 @@ class AccountControllerTest {
 
     @Test
     void linkAccounts_alreadyLinked_returns409() throws Exception {
-        when(accountService.linkAccounts(eq(1L), eq(1L)))
+        when(accountService.linkAccounts(eq(1L), eq(1L), any()))
                 .thenThrow(new AccountService.AccountsAlreadyLinkedException());
 
         mockMvc.perform(post("/api/accounts/link")
@@ -110,7 +110,7 @@ class AccountControllerTest {
 
     @Test
     void linkAccounts_providerNotFound_returns404() throws Exception {
-        when(accountService.linkAccounts(eq(1L), eq(99L)))
+        when(accountService.linkAccounts(eq(1L), eq(99L), any()))
                 .thenThrow(new AccountService.ProviderNotFoundException(99L));
 
         mockMvc.perform(post("/api/accounts/link")

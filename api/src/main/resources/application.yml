@@ -18,6 +18,9 @@ app:
     jwt-secret: ${JWT_SECRET:penny-pilot-default-dev-secret-key-change-me}
     jwt-expiration-ms: 86400000  # 24 hours
 
+  credentials:
+    encryption-key: ${CREDENTIAL_ENCRYPTION_KEY:penny-pilot-default-dev-encryption-key-change-me}
+
   categories:
     seed-on-registration: true
     defaults:

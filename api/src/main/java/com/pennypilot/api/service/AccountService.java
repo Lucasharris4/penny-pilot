@@ -4,8 +4,13 @@ import com.pennypilot.api.dto.account.AccountResponse;
 import com.pennypilot.api.dto.provider.ProviderAccount;
 import com.pennypilot.api.entity.Account;
 import com.pennypilot.api.entity.Provider;
+import com.pennypilot.api.entity.ProviderType;
+import com.pennypilot.api.provider.CredentialResolver;
 import com.pennypilot.api.provider.ProviderResolver;
+import com.pennypilot.api.provider.SimpleFINProvider;
 import com.pennypilot.api.provider.TransactionProvider;
+import com.pennypilot.api.provider.credentials.ProviderCredentials;
+import com.pennypilot.api.provider.credentials.SimpleFINCredentials;
 import com.pennypilot.api.repository.AccountRepository;
 import com.pennypilot.api.repository.ProviderRepository;
 import com.pennypilot.api.repository.TransactionRepository;
@@ -21,18 +26,21 @@ public class AccountService {
     private final ProviderRepository providerRepository;
     private final TransactionRepository transactionRepository;
     private final ProviderResolver providerResolver;
+    private final CredentialResolver credentialResolver;
 
     public AccountService(AccountRepository accountRepository,
                           ProviderRepository providerRepository,
                           TransactionRepository transactionRepository,
-                          ProviderResolver providerResolver) {
+                          ProviderResolver providerResolver,
+                          CredentialResolver credentialResolver) {
         this.accountRepository = accountRepository;
         this.providerRepository = providerRepository;
         this.transactionRepository = transactionRepository;
         this.providerResolver = providerResolver;
+        this.credentialResolver = credentialResolver;
     }
 
-    public List<AccountResponse> linkAccounts(Long userId, Long providerId) {
+    public List<AccountResponse> linkAccounts(Long userId, Long providerId, String setupToken) {
         if (accountRepository.existsByUserId(userId)) {
             throw new AccountsAlreadyLinkedException();
         }
@@ -41,7 +49,10 @@ public class AccountService {
                 .orElseThrow(() -> new ProviderNotFoundException(providerId));
 
         TransactionProvider transactionProvider = providerResolver.resolve(provider.getName());
-        List<ProviderAccount> providerAccounts = transactionProvider.fetchAccounts();
+        ProviderCredentials credentials = resolveCredentialsForLinking(
+                userId, provider, transactionProvider, setupToken);
+
+        List<ProviderAccount> providerAccounts = transactionProvider.fetchAccounts(credentials);
 
         List<Account> accounts = providerAccounts.stream()
                 .map(pa -> {
@@ -76,6 +87,26 @@ public class AccountService {
         accountRepository.delete(account);
     }
 
+    private ProviderCredentials resolveCredentialsForLinking(Long userId, Provider provider,
+                                                             TransactionProvider transactionProvider,
+                                                             String setupToken) {
+        if (provider.getName() == ProviderType.MOCK) {
+            return null;
+        }
+
+        if (provider.getName() == ProviderType.SIMPLEFIN) {
+            if (setupToken == null || setupToken.isBlank()) {
+                throw new SetupTokenRequiredException();
+            }
+            SimpleFINProvider simpleFIN = (SimpleFINProvider) transactionProvider;
+            String accessUrl = simpleFIN.claimSetupToken(setupToken);
+            credentialResolver.store(userId, provider.getId(), accessUrl);
+            return new SimpleFINCredentials(accessUrl);
+        }
+
+        throw new ProviderResolver.ProviderNotSupportedException(provider.getName());
+    }
+
     public static class AccountNotFoundException extends RuntimeException {
         public AccountNotFoundException(Long id) {
             super("Account not found: " + id);
@@ -91,6 +122,12 @@ public class AccountService {
     public static class ProviderNotFoundException extends RuntimeException {
         public ProviderNotFoundException(Long id) {
             super("Provider not found: " + id);
+        }
+    }
+
+    public static class SetupTokenRequiredException extends RuntimeException {
+        public SetupTokenRequiredException() {
+            super("Setup token is required for SimpleFIN provider");
         }
     }
 }

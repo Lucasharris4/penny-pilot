@@ -7,5 +7,8 @@ import jakarta.validation.constraints.NotNull;
 public record LinkAccountsRequest(
         @NotNull
         @Schema(description = "ID of the provider to link accounts from")
-        Long providerId
+        Long providerId,
+
+        @Schema(description = "SimpleFIN setup token (required for SimpleFIN provider, ignored for others)")
+        String setupToken
 ) {}

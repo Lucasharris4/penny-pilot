@@ -13,7 +13,7 @@ Define the `TransactionProvider` interface with methods for fetching accounts an
 > - **Account entity fleshed out** with `providerType`, `providerAccountId`, `accountName`, `balanceCents`, `lastSyncedAt`.
 > - **Provider selection design decision (pending):** Provider type should be chosen at registration (SimpleFIN, Plaid, Manual CSV, Mock). Mock only available in controlled test environments (behind env flag like `ENABLE_MOCK_PROVIDER=true`). Provider can be changed later in Settings. Groom this when working on the Onboarding/Settings stories.
 
-### Story: Account CRUD API
+### Story: Account CRUD API ✅
 REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accounts from the provider and persists them. `GET /api/accounts` lists accounts with balance and last sync time. `DELETE /api/accounts/{id}` unlinks an account and cascade-deletes its transactions.
 - [ ] Complete
 
@@ -36,9 +36,9 @@ REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accou
 > - **Endpoint:** `POST /api/accounts/{id}/sync` → 200, `SyncResponse { transactionsAdded, transactionsUpdated, transactionsSkipped, accountBalanceCents, syncedAt }`.
 > - **Pipeline steps:**
 >   1. Load `Account` by id + userId → 404 if not found/not owned
->   2. Resolve `TransactionProvider` by account's provider (same resolution as Account CRUD)
->   3. `provider.fetchTransactions(providerAccountId, sinceDate)` — sinceDate = `lastSyncedAt` or epoch if never synced
->   4. `provider.fetchAccounts()` → find matching account by `providerAccountId` → update `account.balanceCents` (SimpleFIN returns all accounts in one call anyway; for MockProvider filter client-side)
+>   2. Resolve `TransactionProvider` via `ProviderResolver` and `ProviderCredentials` via `CredentialResolver` (null for Mock)
+>   3. `provider.fetchTransactions(credentials, providerAccountId, sinceDate, LocalDate.now())` — sinceDate = `lastSyncedAt` or epoch if never synced
+>   4. `provider.fetchAccounts(credentials)` → find matching account by `providerAccountId` → update `account.balanceCents` (SimpleFIN returns all accounts in one call anyway; for MockProvider filter client-side)
 >   5. Batch-load existing `externalId`s for this account from DB (efficient Set lookup)
 >   6. For each provider transaction:
 >      - externalId exists + data matches → **skip**
@@ -62,6 +62,30 @@ REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accou
 ### Story: SimpleFIN provider implementation
 Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup token for access URL. Fetch accounts and transactions from the access URL. Map SimpleFIN data to internal models.
 - [ ] Complete
+
+> **Dev notes**:
+> - **`ProviderCredentials` marker interface** — each provider defines its own credential shape. `SimpleFINCredentials(String accessUrl)` implements `ProviderCredentials`. MockProvider receives `null` (no credentials needed). Future providers (e.g., Plaid) define their own record implementing the interface. Open/Closed compliant — adding a provider never modifies existing credential classes.
+> - **`TransactionProvider` interface change** — methods gain `ProviderCredentials credentials` param (nullable) and `fetchTransactions` gains `LocalDate until` param. MockProvider accepts and ignores both. Full updated interface:
+>   ```
+>   List<ProviderAccount> fetchAccounts(ProviderCredentials credentials);
+>   List<ProviderTransaction> fetchTransactions(ProviderCredentials credentials, String accountId, LocalDate since, LocalDate until);
+>   ```
+> - **`SimpleFINProvider`** — `@Component`, implements `TransactionProvider`. Uses Spring `RestClient` for HTTP calls.
+>   - `claimSetupToken(String setupToken)` → `POST https://bridge.simplefin.org/simplefin/claim` with setup token as body → returns access URL string. One-time call during account linking. Provider owns the API call, service layer owns persistence.
+>   - `fetchAccounts(ProviderCredentials)` → casts to `SimpleFINCredentials`, calls `GET {accessUrl}/accounts` → maps to `List<ProviderAccount>`.
+>   - `fetchTransactions(ProviderCredentials, accountId, since, until)` → `GET {accessUrl}/accounts?account={accountId}&start-date={since}&end-date={until}` (unix timestamps) → maps embedded transactions to `List<ProviderTransaction>`.
+> - **Data mapping:**
+>   - Amounts: decimal strings (e.g., `"-45.99"`) → multiply by 100, round to int (cents). Negative = DEBIT, positive = CREDIT.
+>   - Dates: `posted` (unix timestamp) → `LocalDate`.
+>   - Fields: `payee` → `merchantName`, `memo`/`description` → `description`, `id` → `externalId` (for dedup).
+> - **`UserProviderCredential` entity** — `user_id` (FK), `provider_id` (FK), `credential` (String, AES-encrypted). One row per user-provider pair.
+> - **AES encryption at rest** — access URL contains HTTP Basic Auth creds, first-class PI. Encrypt with key from `CREDENTIAL_ENCRYPTION_KEY` env var. Homelabbers set this in `docker-compose.yml` alongside `JWT_SECRET`. Cloud deployment would use secrets manager.
+> - **`CredentialResolver`** — loads `UserProviderCredential` from DB, decrypts, deserializes into the correct `ProviderCredentials` subtype based on provider. Returns `null` for providers that don't need credentials (Mock).
+> - **Account linking flow change:** `LinkAccountsRequest` grows: `{ providerId, setupToken? }`. For MOCK, `setupToken` is null/ignored. For SIMPLEFIN, it's required — `SimpleFINProvider.claimSetupToken()` is called, access URL stored via `CredentialResolver`/DAO, then `fetchAccounts` proceeds.
+> - **Error handling:** `ProviderAuthException` (401/403 from SimpleFIN), `ProviderConnectionException` (network/timeout). Controller maps provider errors to 502.
+> - **HTTP client:** Spring `RestClient` (synchronous, simple, fits our use case).
+> - **Ripple effects:** Interface change touches `MockProvider`, `ProviderResolver`, `AccountService`, `SyncService` (Story 3), and all related tests. Coordinate with Sync story — if Sync is done first, this story updates the interface and fixes the callsites. If done together, build interface change into this story.
+> - **Tests:** `SimpleFINProviderTest` — mock `RestClient` to return canned SimpleFIN JSON. Test data mapping (amounts→cents, timestamps→dates, sign→transaction type). Test `claimSetupToken` flow. Test error scenarios (auth failure, network error). Test `CredentialResolver` encryption round-trip.
 
 ### Story: Accounts UI
 Frontend page listing linked accounts with balance and last sync time. Add account flow (select provider type, enter SimpleFIN setup token or select MockProvider). Manual sync trigger button. Remove account.
