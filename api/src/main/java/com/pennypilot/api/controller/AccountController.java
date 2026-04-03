@@ -3,6 +3,7 @@ package com.pennypilot.api.controller;
 import com.pennypilot.api.config.SecurityUtils;
 import com.pennypilot.api.dto.account.AccountResponse;
 import com.pennypilot.api.dto.account.LinkAccountsRequest;
+import com.pennypilot.api.provider.ProviderResolver;
 import com.pennypilot.api.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -73,8 +74,8 @@ public class AccountController {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler(AccountService.ProviderNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleProviderNotSupported(AccountService.ProviderNotSupportedException ex) {
+    @ExceptionHandler(ProviderResolver.ProviderNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleProviderNotSupported(ProviderResolver.ProviderNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage()));
     }

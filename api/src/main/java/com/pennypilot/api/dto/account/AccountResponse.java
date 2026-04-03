@@ -1,6 +1,7 @@
 package com.pennypilot.api.dto.account;
 
 import com.pennypilot.api.entity.Account;
+import com.pennypilot.api.entity.ProviderType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -14,7 +15,7 @@ public record AccountResponse(
         Long providerId,
 
         @Schema(description = "Provider name")
-        String providerName,
+        ProviderType providerName,
 
         @Schema(description = "Account ID from the provider")
         String providerAccountId,
@@ -32,7 +33,7 @@ public record AccountResponse(
         return new AccountResponse(
                 account.getId(),
                 account.getProvider().getId(),
-                account.getProvider().getName().name(),
+                account.getProvider().getName(),
                 account.getProviderAccountId(),
                 account.getAccountName(),
                 account.getBalanceCents(),

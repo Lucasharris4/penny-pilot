@@ -4,8 +4,9 @@ import com.pennypilot.api.config.AuthProperties;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.dto.account.AccountResponse;
-import com.pennypilot.api.dto.account.LinkAccountsRequest;
+import com.pennypilot.api.entity.ProviderType;
 import com.pennypilot.api.service.AccountService;
+
 import com.pennypilot.api.service.JwtService;
 import com.pennypilot.api.util.FixedClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,10 +62,9 @@ class AccountControllerTest {
 
     @Test
     void linkAccounts_returns201() throws Exception {
-        Instant now = Instant.now();
         when(accountService.linkAccounts(eq(1L), eq(1L))).thenReturn(List.of(
-                new AccountResponse(1L, 1L, "MOCK", "acct-001", "Checking", 150000, null),
-                new AccountResponse(2L, 1L, "MOCK", "acct-002", "Savings", 500000, null)
+                new AccountResponse(1L, 1L, ProviderType.MOCK, "acct-001", "Checking", 150000, null),
+                new AccountResponse(2L, 1L, ProviderType.MOCK, "acct-002", "Savings", 500000, null)
         ));
 
         mockMvc.perform(post("/api/accounts/link")
@@ -138,7 +138,7 @@ class AccountControllerTest {
     @Test
     void listAccounts_returns200() throws Exception {
         when(accountService.listAccounts(1L)).thenReturn(List.of(
-                new AccountResponse(1L, 1L, "MOCK", "acct-001", "Checking", 150000, null)
+                new AccountResponse(1L, 1L, ProviderType.MOCK, "acct-001", "Checking", 150000, null)
         ));
 
         mockMvc.perform(get("/api/accounts")

@@ -20,7 +20,6 @@ public class ProviderSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         seedIfMissing(ProviderType.MOCK, "Sandbox provider with sample data");
         seedIfMissing(ProviderType.SIMPLEFIN, "SimpleFIN Bridge");
-        seedIfMissing(ProviderType.PLAID, "Plaid");
     }
 
     private void seedIfMissing(ProviderType name, String description) {

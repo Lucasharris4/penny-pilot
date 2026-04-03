@@ -5,6 +5,7 @@ import com.pennypilot.api.entity.Account;
 import com.pennypilot.api.entity.Provider;
 import com.pennypilot.api.entity.ProviderType;
 import com.pennypilot.api.provider.MockProvider;
+import com.pennypilot.api.provider.ProviderResolver;
 import com.pennypilot.api.provider.TransactionProvider;
 import com.pennypilot.api.repository.AccountRepository;
 import com.pennypilot.api.repository.ProviderRepository;
@@ -41,8 +42,9 @@ class AccountServiceTest {
 
         MockProvider mockProvider = new MockProvider();
         Map<ProviderType, TransactionProvider> providerMap = Map.of(ProviderType.MOCK, mockProvider);
+        ProviderResolver providerResolver = new ProviderResolver(providerMap);
 
-        accountService = new AccountService(accountRepository, providerRepository, transactionRepository, providerMap);
+        accountService = new AccountService(accountRepository, providerRepository, transactionRepository, providerResolver);
 
         mockProviderEntity = new Provider();
         mockProviderEntity.setId(MOCK_PROVIDER_ID);
@@ -71,7 +73,7 @@ class AccountServiceTest {
         assertEquals("Bond Checking", result.get(0).accountName());
         assertEquals("Bond Savings", result.get(1).accountName());
         assertEquals(MOCK_PROVIDER_ID, result.get(0).providerId());
-        assertEquals("MOCK", result.get(0).providerName());
+        assertEquals(ProviderType.MOCK, result.get(0).providerName());
         assertNotNull(result.get(0).balanceCents());
     }
 
@@ -103,7 +105,7 @@ class AccountServiceTest {
         simplefinProvider.setName(ProviderType.SIMPLEFIN);
         when(providerRepository.findById(2L)).thenReturn(Optional.of(simplefinProvider));
 
-        assertThrows(AccountService.ProviderNotSupportedException.class,
+        assertThrows(ProviderResolver.ProviderNotSupportedException.class,
                 () -> accountService.linkAccounts(USER_ID, 2L));
     }
 
