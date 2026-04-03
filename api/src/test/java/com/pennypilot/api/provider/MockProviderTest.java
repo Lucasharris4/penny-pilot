@@ -1,5 +1,7 @@
 package com.pennypilot.api.provider;
 
+import com.pennypilot.api.dto.provider.ProviderAccount;
+import com.pennypilot.api.dto.provider.ProviderTransaction;
 import com.pennypilot.api.entity.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

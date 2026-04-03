@@ -1,4 +1,4 @@
-package com.pennypilot.api.provider;
+package com.pennypilot.api.dto.provider;
 
 public record ProviderAccount(
         String accountId,

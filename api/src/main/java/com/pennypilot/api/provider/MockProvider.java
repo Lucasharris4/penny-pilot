@@ -1,5 +1,7 @@
 package com.pennypilot.api.provider;
 
+import com.pennypilot.api.dto.provider.ProviderAccount;
+import com.pennypilot.api.dto.provider.ProviderTransaction;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

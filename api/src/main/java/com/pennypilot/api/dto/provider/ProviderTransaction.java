@@ -1,4 +1,4 @@
-package com.pennypilot.api.provider;
+package com.pennypilot.api.dto.provider;
 
 import com.pennypilot.api.entity.TransactionType;
 
