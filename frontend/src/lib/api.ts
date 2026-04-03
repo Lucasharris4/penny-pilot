@@ -93,15 +93,6 @@ export interface BulkCategorizeResponse {
   invalidIds?: number[];
 }
 
-export interface TransactionSummary {
-  categoryId: number | null;
-  categoryName: string;
-  categoryColor: string | null;
-  categoryIcon: string | null;
-  totalCents: number;
-  transactionCount: number;
-}
-
 export interface CategoryResponse {
   id: number;
   name: string;
@@ -155,14 +146,6 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ transactionIds, categoryId }),
     });
-  },
-
-  getTransactionSummary(startDate?: string, endDate?: string): Promise<TransactionSummary[]> {
-    const params = new URLSearchParams();
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
-    const query = params.toString();
-    return request(`/transactions/summary${query ? `?${query}` : ''}`);
   },
 
   getCategories(): Promise<CategoryResponse[]> {

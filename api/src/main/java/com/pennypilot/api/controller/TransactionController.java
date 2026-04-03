@@ -14,8 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/transactions")
 @Tag(name = "Transactions", description = "Transaction management endpoints")
@@ -39,8 +37,8 @@ public class TransactionController {
             @RequestParam(required = false) String search,
             @PageableDefault(size = 20, sort = "date") Pageable pageable) {
         Long userId = SecurityUtils.getCurrentUserId();
-        Page<TransactionResponse> page = transactionService.listTransactions(
-                userId, startDate, endDate, categoryId, minAmount, maxAmount, search, pageable);
+        TransactionFilter filter = new TransactionFilter(startDate, endDate, categoryId, minAmount, maxAmount, search);
+        Page<TransactionResponse> page = transactionService.listTransactions(userId, filter, pageable);
         return ResponseEntity.ok(page);
     }
 
@@ -67,17 +65,6 @@ public class TransactionController {
         Long userId = SecurityUtils.getCurrentUserId();
         BulkCategorizeResponse response = transactionService.bulkCategorize(userId, request);
         return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/summary")
-    @Operation(summary = "Get spending summary by category for a time range")
-    @ApiResponse(responseCode = "200", description = "Summary retrieved")
-    public ResponseEntity<List<TransactionSummaryResponse>> getSummary(
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
-        Long userId = SecurityUtils.getCurrentUserId();
-        List<TransactionSummaryResponse> summary = transactionService.getSummary(userId, startDate, endDate);
-        return ResponseEntity.ok(summary);
     }
 
     @ExceptionHandler(TransactionService.TransactionNotFoundException.class)

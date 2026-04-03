@@ -2,8 +2,8 @@ package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.transaction.BulkCategorizeRequest;
 import com.pennypilot.api.dto.transaction.BulkCategorizeResponse;
+import com.pennypilot.api.dto.transaction.TransactionFilter;
 import com.pennypilot.api.dto.transaction.TransactionResponse;
-import com.pennypilot.api.dto.transaction.TransactionSummaryResponse;
 import com.pennypilot.api.dto.transaction.UpdateTransactionRequest;
 import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.entity.Transaction;
@@ -12,7 +12,6 @@ import com.pennypilot.api.repository.CategoryRepository;
 import com.pennypilot.api.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +23,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class TransactionServiceTest {
@@ -34,6 +32,7 @@ class TransactionServiceTest {
     private TransactionService transactionService;
 
     private static final Long USER_ID = 1L;
+    private static final TransactionFilter EMPTY_FILTER = new TransactionFilter(null, null, null, null, null, null);
 
     @BeforeEach
     void setUp() {
@@ -56,7 +55,7 @@ class TransactionServiceTest {
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(cat));
 
         Page<TransactionResponse> result = transactionService.listTransactions(
-                USER_ID, null, null, null, null, null, null, PageRequest.of(0, 20));
+                USER_ID, EMPTY_FILTER, PageRequest.of(0, 20));
 
         assertEquals(1, result.getTotalElements());
         TransactionResponse response = result.getContent().get(0);
@@ -77,7 +76,7 @@ class TransactionServiceTest {
         when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
         Page<TransactionResponse> result = transactionService.listTransactions(
-                USER_ID, null, null, null, null, null, null, PageRequest.of(0, 20));
+                USER_ID, EMPTY_FILTER, PageRequest.of(0, 20));
 
         assertEquals("Other", result.getContent().get(0).categoryName());
         assertNull(result.getContent().get(0).categoryId());
@@ -199,45 +198,6 @@ class TransactionServiceTest {
 
         assertThrows(TransactionService.CategoryNotFoundException.class,
                 () -> transactionService.bulkCategorize(USER_ID, request));
-    }
-
-    // --- summary ---
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void getSummary_groupsByCategory() {
-        Category groceries = makeCategory(5L, USER_ID, "Groceries", "🛒", "#4CAF50");
-        Category dining = makeCategory(6L, USER_ID, "Dining", "🍽️", "#FF9800");
-
-        Transaction t1 = makeTransaction(1L, USER_ID, 1L, 5L, 3000, TransactionType.DEBIT, "D1", "M1", "2026-03-15");
-        Transaction t2 = makeTransaction(2L, USER_ID, 1L, 5L, 2000, TransactionType.DEBIT, "D2", "M2", "2026-03-16");
-        Transaction t3 = makeTransaction(3L, USER_ID, 1L, 6L, 1500, TransactionType.DEBIT, "D3", "M3", "2026-03-17");
-        Transaction t4 = makeTransaction(4L, USER_ID, 1L, null, 500, TransactionType.DEBIT, "D4", "M4", "2026-03-18");
-
-        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(t1, t2, t3, t4));
-        when(categoryRepository.findByUserId(USER_ID)).thenReturn(List.of(groceries, dining));
-
-        List<TransactionSummaryResponse> result = transactionService.getSummary(USER_ID, "2026-03-01", "2026-03-31");
-
-        assertEquals(3, result.size());
-
-        TransactionSummaryResponse grocerySummary = result.stream()
-                .filter(s -> s.categoryId() != null && s.categoryId() == 5L).findFirst().orElseThrow();
-        assertEquals("Groceries", grocerySummary.categoryName());
-        assertEquals(5000, grocerySummary.totalCents());
-        assertEquals(2, grocerySummary.transactionCount());
-
-        TransactionSummaryResponse diningSummary = result.stream()
-                .filter(s -> s.categoryId() != null && s.categoryId() == 6L).findFirst().orElseThrow();
-        assertEquals("Dining", diningSummary.categoryName());
-        assertEquals(1500, diningSummary.totalCents());
-        assertEquals(1, diningSummary.transactionCount());
-
-        TransactionSummaryResponse otherSummary = result.stream()
-                .filter(s -> s.categoryId() == null).findFirst().orElseThrow();
-        assertEquals("Other", otherSummary.categoryName());
-        assertEquals(500, otherSummary.totalCents());
-        assertEquals(1, otherSummary.transactionCount());
     }
 
     // --- helpers ---

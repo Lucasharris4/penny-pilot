@@ -129,16 +129,6 @@ REST endpoints for transactions. `GET /api/transactions` supports filtering by d
 > - **`@Transactional`** wraps the operation — DB failure rolls back all changes.
 > - **API contract:** `PUT /api/transactions/bulk-categorize` — body: `{ transactionIds: Long[], categoryId: Long }` → 200 `{ updated: int }` or 400 `{ updated: 0, invalidIds: Long[] }`
 
-### Story: Transaction summary endpoint
-`GET /api/transactions/summary` returns aggregated spending by category for a given time range. Used by the dashboard and reports.
-- [x] Complete
-
-> **Dev notes**:
-> - Groups transactions by category, returns `totalCents` and `transactionCount` per group.
-> - Uncategorized transactions grouped under `categoryName: "Other"` with null `categoryId`.
-> - Includes both CREDIT and DEBIT transactions — frontend filters by type as needed.
-> - **API contract:** `GET /api/transactions/summary?startDate=...&endDate=...` → 200, `[{ categoryId, categoryName, categoryColor, categoryIcon, totalCents, transactionCount }]`
-
 ### Story: Transactions list UI
 Frontend page showing a paginated, filterable, sortable list of transactions. Inline category assignment (click a transaction's category to change it). Bulk select and categorize multiple transactions at once.
 - [x] Complete
@@ -151,7 +141,7 @@ Frontend page showing a paginated, filterable, sortable list of transactions. In
 > - **New category dialog:** accessible from both inline edit and bulk flows. Creates category on the fly, then applies it to the pending transaction(s).
 > - **Empty state:** "No transactions found — Transactions will appear here after syncing an account."
 > - **Shadcn components installed:** select, checkbox, dialog, badge, table.
-> - **API client extended** (`api.ts`): `getTransactions`, `updateTransaction`, `bulkCategorize`, `getTransactionSummary`, `getCategories`, `createCategory`.
+> - **API client extended** (`api.ts`): `getTransactions`, `updateTransaction`, `bulkCategorize`, `getCategories`, `createCategory`.
 
 ---
 

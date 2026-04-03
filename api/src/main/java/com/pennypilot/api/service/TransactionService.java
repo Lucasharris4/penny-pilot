@@ -1,18 +1,14 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.transaction.*;
-import com.pennypilot.api.entity.Category;
 import com.pennypilot.api.entity.Transaction;
 import com.pennypilot.api.repository.CategoryRepository;
 import com.pennypilot.api.repository.TransactionRepository;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,13 +24,8 @@ public class TransactionService {
         this.categoryRepository = categoryRepository;
     }
 
-    public Page<TransactionResponse> listTransactions(Long userId, String startDate, String endDate,
-                                                       Long categoryId, Integer minAmount, Integer maxAmount,
-                                                       String search, Pageable pageable) {
-        Specification<Transaction> spec = buildSpecification(userId, startDate, endDate, categoryId,
-                minAmount, maxAmount, search);
-
-        Page<Transaction> page = transactionRepository.findAll(spec, pageable);
+    public Page<TransactionResponse> listTransactions(Long userId, TransactionFilter filter, Pageable pageable) {
+        Page<Transaction> page = transactionRepository.findAll(filter.toSpecification(userId), pageable);
 
         Map<Long, String> categoryNames = loadCategoryNames(userId);
 
@@ -85,76 +76,11 @@ public class TransactionService {
         return new BulkCategorizeResponse(transactions.size());
     }
 
-    public List<TransactionSummaryResponse> getSummary(Long userId, String startDate, String endDate) {
-        Specification<Transaction> spec = buildSpecification(userId, startDate, endDate, null, null, null, null);
-        List<Transaction> transactions = transactionRepository.findAll(spec);
-
-        Map<Long, String> categoryNames = loadCategoryNames(userId);
-        Map<Long, Category> categoryMap = categoryRepository.findByUserId(userId).stream()
-                .collect(Collectors.toMap(Category::getId, c -> c));
-
-        Map<Long, List<Transaction>> grouped = transactions.stream()
-                .collect(Collectors.groupingBy(txn -> txn.getCategoryId() != null ? txn.getCategoryId() : -1L));
-
-        return grouped.entrySet().stream()
-                .map(entry -> {
-                    Long catId = entry.getKey() == -1L ? null : entry.getKey();
-                    List<Transaction> txns = entry.getValue();
-                    Category category = catId != null ? categoryMap.get(catId) : null;
-
-                    long totalCents = txns.stream()
-                            .mapToLong(Transaction::getAmountCents)
-                            .sum();
-
-                    return new TransactionSummaryResponse(
-                            catId,
-                            category != null ? category.getName() : "Other",
-                            category != null ? category.getColor() : null,
-                            category != null ? category.getIcon() : null,
-                            totalCents,
-                            txns.size()
-                    );
-                })
-                .toList();
-    }
-
-    private Specification<Transaction> buildSpecification(Long userId, String startDate, String endDate,
-                                                           Long categoryId, Integer minAmount, Integer maxAmount,
-                                                           String search) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            predicates.add(cb.equal(root.get("userId"), userId));
-
-            if (startDate != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("date"), startDate));
-            }
-            if (endDate != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
-            }
-            if (categoryId != null) {
-                predicates.add(cb.equal(root.get("categoryId"), categoryId));
-            }
-            if (minAmount != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("amountCents"), minAmount));
-            }
-            if (maxAmount != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("amountCents"), maxAmount));
-            }
-            if (search != null && !search.isBlank()) {
-                String pattern = "%" + search.toLowerCase() + "%";
-                Predicate descMatch = cb.like(cb.lower(root.get("description")), pattern);
-                Predicate merchantMatch = cb.like(cb.lower(root.get("merchantName")), pattern);
-                predicates.add(cb.or(descMatch, merchantMatch));
-            }
-
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-    }
-
     private Map<Long, String> loadCategoryNames(Long userId) {
         return categoryRepository.findByUserId(userId).stream()
-                .collect(Collectors.toMap(Category::getId, Category::getName));
+                .collect(Collectors.toMap(
+                        com.pennypilot.api.entity.Category::getId,
+                        com.pennypilot.api.entity.Category::getName));
     }
 
     private String resolveCategoryName(Long categoryId, Map<Long, String> categoryNames) {

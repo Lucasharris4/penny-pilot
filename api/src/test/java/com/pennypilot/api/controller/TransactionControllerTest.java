@@ -69,7 +69,7 @@ class TransactionControllerTest {
                 1L, 1L, 5L, "Groceries", 4500, TransactionType.DEBIT,
                 "WHOLE FOODS #1234", "Whole Foods", "2026-03-15", null);
 
-        when(transactionService.listTransactions(eq(1L), any(), any(), any(), any(), any(), any(), any(Pageable.class)))
+        when(transactionService.listTransactions(eq(1L), any(TransactionFilter.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(txn), PageRequest.of(0, 20), 1));
 
         mockMvc.perform(get("/api/transactions")
@@ -182,24 +182,4 @@ class TransactionControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- summary ---
-
-    @Test
-    void getSummary_returns200() throws Exception {
-        when(transactionService.getSummary(eq(1L), eq("2026-03-01"), eq("2026-03-31")))
-                .thenReturn(List.of(
-                        new TransactionSummaryResponse(5L, "Groceries", "#4CAF50", "🛒", 5000, 2),
-                        new TransactionSummaryResponse(null, "Other", null, null, 500, 1)
-                ));
-
-        mockMvc.perform(get("/api/transactions/summary")
-                        .header("Authorization", "Bearer " + token)
-                        .param("startDate", "2026-03-01")
-                        .param("endDate", "2026-03-31"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].categoryName").value("Groceries"))
-                .andExpect(jsonPath("$[0].totalCents").value(5000))
-                .andExpect(jsonPath("$[1].categoryName").value("Other"));
-    }
 }
