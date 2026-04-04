@@ -87,13 +87,37 @@ Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup t
 > - **Ripple effects:** Interface change touches `MockProvider`, `ProviderResolver`, `AccountService`, `SyncService` (Story 3), and all related tests. Coordinate with Sync story — if Sync is done first, this story updates the interface and fixes the callsites. If done together, build interface change into this story.
 > - **Tests:** `SimpleFINProviderTest` — mock `RestClient` to return canned SimpleFIN JSON. Test data mapping (amounts→cents, timestamps→dates, sign→transaction type). Test `claimSetupToken` flow. Test error scenarios (auth failure, network error). Test `CredentialResolver` encryption round-trip.
 
-### Story: Accounts UI
-Frontend page listing linked accounts with balance and last sync time. Add account flow (select provider type, enter SimpleFIN setup token or select MockProvider). Manual sync trigger button. Remove account.
-- [ ] Complete
+### Story: Sidebar Navigation
+Shared layout component with sidebar nav. Routes: Transactions (main/default), Accounts. Dashboard link present but points to placeholder. Logout in sidebar.
+- [x] Complete
 
-### Story: Onboarding flow
-First-login experience: prompt user to link a bank account and set up categories. Guide through SimpleFIN token entry or MockProvider selection. After linking, trigger initial sync.
-- [ ] Complete
+> **Dev notes**:
+> - **Default route changes** from `/dashboard` to `/transactions`. `*` catch-all also redirects to `/transactions`.
+> - **Sidebar**: persistent left sidebar. Links: Transactions, Accounts, Dashboard (placeholder). Logout button at bottom. Active route highlighted.
+> - **Layout component** wraps all authenticated pages. Login/Register pages do NOT get the sidebar.
+> - **Shadcn components**: install as needed (e.g., separator, tooltip).
+
+### Story: Accounts UI
+Backend: `GET /api/providers` endpoint and MockProvider visibility config. Frontend: Accounts page listing linked accounts with balance and last sync time. Link account flow (select provider, enter SimpleFIN token if applicable). Sync and remove account actions.
+- [x] Complete
+
+> **Dev notes**:
+> - **`GET /api/providers`** → 200, `[{ id, name, description }]`. Auth required. Filters out MOCK when `app.providers.mock-enabled=false`.
+> - **`app.providers.mock-enabled`** property in `application.yml`, default `false`. `application-dev.yml` overrides to `true`. Docker-compose can set `SPRING_PROFILES_ACTIVE=dev` to enable. `ProviderSeeder` always seeds MOCK (for DB/test consistency) but the endpoint filters the response.
+> - **Accounts page** at `/accounts`: lists linked accounts (name, balance in dollars, last sync as relative time). Each account row has Sync button and Remove button (with confirmation).
+> - **"Link Account"** shown only when no accounts exist. Flow: select provider from `GET /api/providers` → enter SimpleFIN setup token if SIMPLEFIN selected → `POST /api/accounts/link` → auto-trigger sync on all returned accounts → show sync results.
+> - **One provider per user** for now. After linking, page shows accounts + sync/remove only.
+> - **API client additions**: `getProviders()`, `getAccounts()`, `linkAccounts(providerId, setupToken?)`, `syncAccount(id)`, `deleteAccount(id)`.
+> - **Tests**: Controller test for `GET /api/providers` endpoint. Frontend: smoke test for Accounts page.
+
+### Story: Transactions Empty State
+Update transactions page empty state to guide first-run users: "No transactions yet. Link a bank account to get started." with a CTA linking to `/accounts`. This replaces a dedicated onboarding page.
+- [x] Complete
+
+> **Dev notes**:
+> - Replaces the original "Onboarding flow" story. No dedicated onboarding page — good empty states ARE the onboarding.
+> - Check if user has accounts (can use existing transaction emptiness as the signal — if no transactions, show the CTA).
+> - Simple: if `GET /api/transactions` returns empty and no filter is active, show the onboarding empty state. If filters are active and results are empty, show "No matching transactions."
 
 ---
 

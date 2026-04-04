@@ -22,6 +22,9 @@ app:
     cron: "0 0 2 * * *"          # Daily at 2 AM
     stale-threshold-hours: 1     # Sync on login if older than 1 hour
 
+  providers:
+    mock-enabled: false
+
   credentials:
     encryption-key: ${CREDENTIAL_ENCRYPTION_KEY:penny-pilot-default-dev-encryption-key-change-me}
 
