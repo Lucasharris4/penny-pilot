@@ -9,6 +9,7 @@ services:
       DB_PATH: /app/data/pennypilot.db
       JWT_SECRET: ${JWT_SECRET:-penny-pilot-default-dev-secret-key-change-me}
       CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:-penny-pilot-default-dev-encryption-key-change-me}
+      SPRING_PROFILES_ACTIVE: dev
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
