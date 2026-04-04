@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
-    navigate('/dashboard');
+    navigate('/transactions');
   };
 
   const logout = () => {

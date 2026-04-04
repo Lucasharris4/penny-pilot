@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { api} from '@/lib/api';
 import type { TransactionResponse, CategoryResponse, TransactionFilters } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,8 +41,6 @@ function formatDate(dateStr: string): string {
 }
 
 export default function TransactionsPage() {
-  const { logout } = useAuth();
-
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -254,14 +251,10 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
-        <Button variant="outline" onClick={logout}>Sign out</Button>
-      </header>
+    <div className="p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold text-foreground mb-4">Transactions</h1>
 
-      <div className="p-6 max-w-7xl mx-auto space-y-4">
+      <div className="space-y-4">
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-end">
           <div className="space-y-1">
