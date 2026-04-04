@@ -2,12 +2,11 @@ package com.pennypilot.api.controller;
 
 import com.pennypilot.api.config.AuthProperties;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
-import com.pennypilot.api.config.ProviderProperties;
 import com.pennypilot.api.config.SecurityConfig;
-import com.pennypilot.api.entity.Provider;
+import com.pennypilot.api.dto.provider.ProviderResponse;
 import com.pennypilot.api.entity.ProviderType;
-import com.pennypilot.api.repository.ProviderRepository;
 import com.pennypilot.api.service.JwtService;
+import com.pennypilot.api.service.ProviderService;
 import com.pennypilot.api.util.FixedClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,10 +42,7 @@ class ProviderControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ProviderRepository providerRepository;
-
-    @MockitoBean
-    private ProviderProperties providerProperties;
+    private ProviderService providerService;
 
     @Autowired
     private JwtService jwtService;
@@ -58,36 +54,10 @@ class ProviderControllerTest {
         token = jwtService.generateToken(1L, "test@example.com");
     }
 
-    private Provider makeProvider(Long id, ProviderType name, String description) {
-        Provider p = new Provider();
-        p.setId(id);
-        p.setName(name);
-        p.setDescription(description);
-        return p;
-    }
-
     @Test
-    void listProviders_mockEnabled_returnsAll() throws Exception {
-        when(providerProperties.mockEnabled()).thenReturn(true);
-        when(providerRepository.findAll()).thenReturn(List.of(
-                makeProvider(1L, ProviderType.MOCK, "Sandbox provider with sample data"),
-                makeProvider(2L, ProviderType.SIMPLEFIN, "SimpleFIN Bridge")
-        ));
-
-        mockMvc.perform(get("/api/providers")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].name").value("MOCK"))
-                .andExpect(jsonPath("$[1].name").value("SIMPLEFIN"));
-    }
-
-    @Test
-    void listProviders_mockDisabled_filtersMock() throws Exception {
-        when(providerProperties.mockEnabled()).thenReturn(false);
-        when(providerRepository.findAll()).thenReturn(List.of(
-                makeProvider(1L, ProviderType.MOCK, "Sandbox provider with sample data"),
-                makeProvider(2L, ProviderType.SIMPLEFIN, "SimpleFIN Bridge")
+    void listProviders_returnsServiceResult() throws Exception {
+        when(providerService.listAvailableProviders()).thenReturn(List.of(
+                new ProviderResponse(2L, ProviderType.SIMPLEFIN, "SimpleFIN Bridge")
         ));
 
         mockMvc.perform(get("/api/providers")

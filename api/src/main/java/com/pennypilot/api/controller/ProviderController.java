@@ -1,9 +1,7 @@
 package com.pennypilot.api.controller;
 
-import com.pennypilot.api.config.ProviderProperties;
 import com.pennypilot.api.dto.provider.ProviderResponse;
-import com.pennypilot.api.entity.ProviderType;
-import com.pennypilot.api.repository.ProviderRepository;
+import com.pennypilot.api.service.ProviderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,22 +17,16 @@ import java.util.List;
 @Tag(name = "Providers", description = "Provider listing endpoint")
 public class ProviderController {
 
-    private final ProviderRepository providerRepository;
-    private final ProviderProperties providerProperties;
+    private final ProviderService providerService;
 
-    public ProviderController(ProviderRepository providerRepository, ProviderProperties providerProperties) {
-        this.providerRepository = providerRepository;
-        this.providerProperties = providerProperties;
+    public ProviderController(ProviderService providerService) {
+        this.providerService = providerService;
     }
 
     @GetMapping
     @Operation(summary = "List available providers")
     @ApiResponse(responseCode = "200", description = "Providers retrieved")
     public ResponseEntity<List<ProviderResponse>> listProviders() {
-        List<ProviderResponse> providers = providerRepository.findAll().stream()
-                .filter(p -> providerProperties.mockEnabled() || p.getName() != ProviderType.MOCK)
-                .map(p -> new ProviderResponse(p.getId(), p.getName(), p.getDescription()))
-                .toList();
-        return ResponseEntity.ok(providers);
+        return ResponseEntity.ok(providerService.listAvailableProviders());
     }
 }
