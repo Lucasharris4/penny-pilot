@@ -15,7 +15,7 @@ Define the `TransactionProvider` interface with methods for fetching accounts an
 
 ### Story: Account CRUD API ✅
 REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accounts from the provider and persists them. `GET /api/accounts` lists accounts with balance and last sync time. `DELETE /api/accounts/{id}` unlinks an account and cascade-deletes its transactions.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **New `Provider` entity + lookup table.** Seeded on startup: MOCK, SIMPLEFIN, PLAID. `providers` table: `id`, `name`, `description`. `accounts.provider_id` FK replaces the `providerType` enum column on the Account entity. `ProviderType` enum still exists in code for programmatic reference, but DB relationship is normalized.
@@ -28,9 +28,9 @@ REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accou
 > - **`AccountRepository`:** `findByUserId`, `findByIdAndUserId`, `existsByUserId` (for duplicate-link prevention).
 > - **Tests:** `AccountServiceTest` (plain JUnit, mocked repos, real MockProvider), `AccountControllerTest` (`@WebMvcTest`, stubbed service).
 
-### Story: Sync endpoint and pipeline
+### Story: Sync endpoint and pipeline ✅
 `POST /api/accounts/{id}/sync` triggers a sync for a single account. Pulls transactions from the provider, deduplicates by `external_id` (updates if data changed), applies auto-categorization via user's category rules, and persists new/updated transactions. Also serves as the foundation for scheduled background sync.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **Endpoint:** `POST /api/accounts/{id}/sync` → 200, `SyncResponse { transactionsAdded, transactionsUpdated, transactionsSkipped, accountBalanceCents, syncedAt }`.
@@ -59,9 +59,9 @@ REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accou
 > - **New classes:** `SyncService`, `SyncResponse` DTO. Sync endpoint can live on `AccountController` (nested resource pattern: `/api/accounts/{id}/sync`).
 > - **Tests:** `SyncServiceTest` (plain JUnit, mocked repos + mocked provider, real `CategoryRuleService` + real `GlobMatcher`), controller test for sync endpoint.
 
-### Story: SimpleFIN provider implementation
+### Story: SimpleFIN provider implementation ✅
 Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup token for access URL. Fetch accounts and transactions from the access URL. Map SimpleFIN data to internal models.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **`ProviderCredentials` marker interface** — each provider defines its own credential shape. `SimpleFINCredentials(String accessUrl)` implements `ProviderCredentials`. MockProvider receives `null` (no credentials needed). Future providers (e.g., Plaid) define their own record implementing the interface. Open/Closed compliant — adding a provider never modifies existing credential classes.
