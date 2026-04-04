@@ -1,37 +1,5 @@
 # Backlog
 
-## Epic: Dashboard
-Status: 🔨 In Progress
-
-### Story: Dashboard API
-Two endpoints for dashboard data. `GET /api/dashboard/summary?startDate=&endDate=` returns income total, expense total, net cash flow, and per-category breakdown in one response. `GET /api/dashboard/available-months` returns months that have transaction data (descending).
-- [x] Complete
-
-> **Dev notes**:
-> - **`GET /api/dashboard/summary?startDate=&endDate=`** → 200, `{ incomeCents, expensesCents, netCents, byCategory: [{ categoryId, categoryName, categoryColor, amountCents, percentage }] }`. Auth required, user-scoped.
-> - Two DB queries: `SUM(amount_cents) GROUP BY transaction_type` for totals, `SUM(amount_cents) GROUP BY category_id` with JOIN to categories for breakdown. Both filtered by user's account IDs + date range. Sub-millisecond for typical personal finance volumes.
-> - Percentage calculated in Java: each category's amount / total expenses * 100.
-> - Uncategorized transactions (null category_id) grouped as "Other" in the response.
-> - **`GET /api/dashboard/available-months`** → 200, `{ months: ["2026-04", "2026-03", ...] }`. Distinct `YYYY-MM` values from transaction dates for the user's accounts, descending.
-> - **New classes:** `DashboardService`, `DashboardController`, `DashboardSummaryResponse`, `CategoryBreakdown` (inner record), `AvailableMonthsResponse`.
-> - **Tests:** `DashboardServiceTest` (plain JUnit, mocked repos), `DashboardControllerTest` (`@WebMvcTest`, stubbed service).
-> - Subscriptions endpoint dropped (stretch goal). Summary and by-category combined into single endpoint — dashboard always needs both.
-
-### Story: Dashboard UI
-Month selector defaulting to most recent month with data. Summary cards (income, expenses, net cash flow). Category spending donut chart via Recharts. Empty state when no data exists.
-- [x] Complete
-
-> **Dev notes**:
-> - **Month selector**: populated from `GET /api/dashboard/available-months`. Defaults to first entry (most recent). Changing month re-fetches summary. If no months available, show empty state: "No transaction data yet."
-> - **Summary cards**: three cards — Income (green), Expenses (red), Net Cash Flow (green if positive, red if negative). Format as dollars from cents.
-> - **Donut chart**: Recharts `PieChart` with `Pie` component. Each slice colored by `categoryColor`. Tooltip shows category name + amount + percentage. Center label shows total expenses.
-> - **No custom date range picker for MVP.** Month selector only. Quarter/Year presets deferred.
-> - **No subscription tracker.** Deferred to stretch goals.
-> - **No recent transactions.** Transactions page serves this purpose.
-> - **API client additions:** `getDashboardSummary(startDate, endDate)`, `getAvailableMonths()`.
-
----
-
 ## Epic: Settings & Data Management
 Status: Not Started
 
@@ -45,14 +13,6 @@ Reject default secrets (JWT_SECRET, CREDENTIAL_ENCRYPTION_KEY) on startup when r
 
 ### Story: Settings page
 Frontend page with: change password form, SimpleFIN token management, and default category configuration.
-- [ ] Complete
-
-### Story: CSV export
-Export transactions as a downloadable CSV file. Filterable by the same parameters as the transactions list (date range, category, account).
-- [ ] Complete
-
-### Story: Dark mode
-Add a light/dark theme toggle using Tailwind's dark variant. Persist the user's preference in localStorage.
 - [ ] Complete
 
 ### Story: Extract shared JWT test configuration
@@ -77,6 +37,17 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 - [ ] Complete
 
 ## Done
+
+## Epic: Dashboard ✅
+Status: Complete
+
+### Story: Dashboard API ✅
+- [x] Complete
+
+### Story: Dashboard UI ✅
+- [x] Complete
+
+---
 
 ## Epic: Accounts & SimpleFIN Integration ✅
 Status: Complete
@@ -306,3 +277,5 @@ These are tracked here for future planning but will not be groomed or worked unt
 - Mobile-responsive PWA
 - AI-assisted transaction categorization (analyze transaction history, suggest category rules, auto-categorize on first syncs)
 - Break scheduled sync (nightly job) into its own container/service — shares DB and sync logic but scales independently, no impact on user-facing API performance. Worker pattern for multi-user scale.
+- Dark mode (light/dark theme toggle using Tailwind's dark variant, persist in localStorage)
+- CSV/PDF export (server-side transaction export — browser Print works for quick snapshots)

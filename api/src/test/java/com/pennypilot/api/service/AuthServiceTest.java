@@ -3,6 +3,7 @@ package com.pennypilot.api.service;
 import com.pennypilot.api.config.AuthProperties;
 import com.pennypilot.api.config.CategoryProperties;
 import com.pennypilot.api.util.FixedClock;
+import com.pennypilot.api.dto.auth.ChangePasswordRequest;
 import com.pennypilot.api.dto.auth.LoginRequest;
 import com.pennypilot.api.dto.auth.LoginResponse;
 import com.pennypilot.api.dto.auth.RegisterRequest;
@@ -153,5 +154,55 @@ class AuthServiceTest {
 
         assertThrows(AuthService.InvalidCredentialsException.class,
                 () -> authService.login(new LoginRequest("unknown@example.com", "password123")));
+    }
+
+    // --- changePassword ---
+
+    @Test
+    void changePassword_success() {
+        User user = new User();
+        user.setId(1L);
+        user.setPasswordHash(passwordEncoder.encode("oldPassword123"));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.changePassword(1L, new ChangePasswordRequest("oldPassword123", "newPassword456"));
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertTrue(passwordEncoder.matches("newPassword456", captor.getValue().getPasswordHash()));
+    }
+
+    @Test
+    void changePassword_wrongCurrentPassword_throws() {
+        User user = new User();
+        user.setId(1L);
+        user.setPasswordHash(passwordEncoder.encode("oldPassword123"));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThrows(AuthService.InvalidCredentialsException.class,
+                () -> authService.changePassword(1L, new ChangePasswordRequest("wrongPassword", "newPassword456")));
+    }
+
+    @Test
+    void changePassword_shortNewPassword_throws() {
+        User user = new User();
+        user.setId(1L);
+        user.setPasswordHash(passwordEncoder.encode("oldPassword123"));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> authService.changePassword(1L, new ChangePasswordRequest("oldPassword123", "short")));
+    }
+
+    @Test
+    void changePassword_userNotFound_throws() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(AuthService.InvalidCredentialsException.class,
+                () -> authService.changePassword(99L, new ChangePasswordRequest("oldPassword", "newPassword456")));
     }
 }

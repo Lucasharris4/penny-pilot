@@ -101,3 +101,5 @@ cd frontend && npm test
 - **Run `npm run build` (not just `tsc --noEmit`) before committing frontend.** The Docker build uses `tsc -b` which enforces `verbatimModuleSyntax` — type-only imports are required. `tsc --noEmit` doesn't catch this. Always run the full production build to match what Docker will do.
 - **Never push directly to main.** Even small fixes get a branch and PR. The user reviews all changes before they hit main.
 - **Only implement what was explicitly agreed to in grooming.** Don't bundle extra stories or endpoints that weren't discussed. If it's in the backlog but wasn't groomed for this sprint, it doesn't ship this sprint.
+- **Avoid `cd` in Bash commands.** Use absolute paths everywhere to minimize permission prompts. The user wants to walk away during execution without babysitting approvals.
+- **Prioritize frontend stories for visible progress.** Backend-only sprints produce invisible work. Bundle at least one frontend story per sprint so demos are tangible and direction can be validated.

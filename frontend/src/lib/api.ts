@@ -234,4 +234,36 @@ export const api = {
   },
 };
 
+export interface SimpleFINStatusResponse {
+  hasToken: boolean;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export const settingsApi = {
+  changePassword(currentPassword: string, newPassword: string): Promise<MessageResponse> {
+    return request('/settings/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  getSimpleFINStatus(): Promise<SimpleFINStatusResponse> {
+    return request('/settings/simplefin-status');
+  },
+
+  updateSimpleFINToken(setupToken: string): Promise<MessageResponse> {
+    return request('/settings/simplefin-token', {
+      method: 'PUT',
+      body: JSON.stringify({ setupToken }),
+    });
+  },
+
+  deleteSimpleFINToken(): Promise<void> {
+    return request('/settings/simplefin-token', { method: 'DELETE' });
+  },
+};
+
 export { ApiError };

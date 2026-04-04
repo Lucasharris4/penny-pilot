@@ -1,6 +1,7 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.config.AuthProperties;
+import com.pennypilot.api.dto.auth.ChangePasswordRequest;
 import com.pennypilot.api.dto.auth.LoginRequest;
 import com.pennypilot.api.dto.auth.LoginResponse;
 import com.pennypilot.api.dto.auth.RegisterRequest;
@@ -61,6 +62,23 @@ public class AuthService {
         String token = jwtService.generateToken(user.getId(), user.getEmail());
         loginSyncService.syncIfStale(user.getId());
         return new LoginResponse(token);
+    }
+
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(InvalidCredentialsException::new);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new InvalidCredentialsException();
+        }
+
+        if (request.newPassword().length() < authProperties.passwordMinLength()) {
+            throw new IllegalArgumentException(
+                    "Password must be at least " + authProperties.passwordMinLength() + " characters");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 
     public static class InvalidCredentialsException extends RuntimeException {

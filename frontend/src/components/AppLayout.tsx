@@ -36,10 +36,24 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-sidebar-border p-4">
-          <Button variant="outline" size="sm" className="w-full" onClick={logout}>
-            Sign out
-          </Button>
+        <div className="border-t border-sidebar-border p-2 space-y-1">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              }`
+            }
+          >
+            Settings
+          </NavLink>
+          <div className="px-1 pt-1">
+            <Button variant="outline" size="sm" className="w-full" onClick={logout}>
+              Sign out
+            </Button>
+          </div>
         </div>
       </aside>
 
