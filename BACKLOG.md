@@ -89,7 +89,7 @@ Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup t
 
 ### Story: Sidebar Navigation
 Shared layout component with sidebar nav. Routes: Transactions (main/default), Accounts. Dashboard link present but points to placeholder. Logout in sidebar.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **Default route changes** from `/dashboard` to `/transactions`. `*` catch-all also redirects to `/transactions`.
@@ -99,7 +99,7 @@ Shared layout component with sidebar nav. Routes: Transactions (main/default), A
 
 ### Story: Accounts UI
 Backend: `GET /api/providers` endpoint and MockProvider visibility config. Frontend: Accounts page listing linked accounts with balance and last sync time. Link account flow (select provider, enter SimpleFIN token if applicable). Sync and remove account actions.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **`GET /api/providers`** → 200, `[{ id, name, description }]`. Auth required. Filters out MOCK when `app.providers.mock-enabled=false`.
@@ -112,7 +112,7 @@ Backend: `GET /api/providers` endpoint and MockProvider visibility config. Front
 
 ### Story: Transactions Empty State
 Update transactions page empty state to guide first-run users: "No transactions yet. Link a bank account to get started." with a CTA linking to `/accounts`. This replaces a dedicated onboarding page.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - Replaces the original "Onboarding flow" story. No dedicated onboarding page — good empty states ARE the onboarding.

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api} from '@/lib/api';
+import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 import type { TransactionResponse, CategoryResponse, TransactionFilters } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -334,10 +335,24 @@ export default function TransactionsPage() {
           <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground">No transactions found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Transactions will appear here after syncing an account.
-            </p>
+            {search || categoryFilter || startDate || endDate ? (
+              <>
+                <p className="text-lg text-muted-foreground">No matching transactions</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Try adjusting your filters.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg text-muted-foreground">No transactions yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Link a bank account to get started.
+                </p>
+                <Link to="/accounts">
+                  <Button className="mt-4">Link Account</Button>
+                </Link>
+              </>
+            )}
           </div>
         ) : (
           <>
