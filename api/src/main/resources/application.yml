@@ -22,6 +22,10 @@ app:
     cron: "0 0 2 * * *"          # Daily at 2 AM
     stale-threshold-hours: 1     # Sync on login if older than 1 hour
 
+  security:
+    require-https: true
+    validate-secrets: true
+
   providers:
     mock-enabled: false
 

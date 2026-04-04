@@ -1,24 +1,21 @@
 package com.pennypilot.api.controller;
 
-import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
+import com.pennypilot.api.config.SecurityConfig;
+import com.pennypilot.api.config.TestJwtConfig;
 import com.pennypilot.api.dto.account.AccountResponse;
 import com.pennypilot.api.dto.sync.SyncResponse;
 import com.pennypilot.api.entity.ProviderType;
 import com.pennypilot.api.service.AccountService;
-import com.pennypilot.api.service.SyncService;
-
 import com.pennypilot.api.service.JwtService;
-import com.pennypilot.api.util.FixedClock;
+import com.pennypilot.api.service.SyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,17 +29,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AccountController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, AccountControllerTest.JwtTestConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, TestJwtConfig.class})
+@ActiveProfiles("test")
 class AccountControllerTest {
-
-    @TestConfiguration
-    static class JwtTestConfig {
-        @Bean
-        JwtService jwtService() {
-            AuthProperties props = new AuthProperties(8, "test-secret-key-that-is-long-enough-for-hmac-sha", 86400000L);
-            return new JwtService(props, new FixedClock(Instant.now()));
-        }
-    }
 
     @Autowired
     private MockMvc mockMvc;

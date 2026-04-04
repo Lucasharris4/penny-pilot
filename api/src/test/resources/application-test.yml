@@ -13,3 +13,7 @@ app:
     password-min-length: 8
     jwt-secret: test-secret-that-is-at-least-32-bytes-long-for-hmac
     jwt-expiration-ms: 86400000
+
+  security:
+    require-https: false
+    validate-secrets: false
