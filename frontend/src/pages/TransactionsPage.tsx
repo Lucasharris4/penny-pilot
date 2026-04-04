@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import ColorPicker from '@/components/ColorPicker';
 import {
   Select,
   SelectContent,
@@ -524,15 +525,7 @@ export default function TransactionsPage() {
                 placeholder="e.g., 🍕"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="new-cat-color">Color (optional)</Label>
-              <Input
-                id="new-cat-color"
-                value={newCategoryColor}
-                onChange={e => setNewCategoryColor(e.target.value)}
-                placeholder="e.g., #FF5722"
-              />
-            </div>
+            <ColorPicker value={newCategoryColor} onChange={setNewCategoryColor} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewCategory(false)}>Cancel</Button>
