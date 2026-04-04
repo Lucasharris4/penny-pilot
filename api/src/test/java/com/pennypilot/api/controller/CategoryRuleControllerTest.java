@@ -1,9 +1,8 @@
 package com.pennypilot.api.controller;
 
-import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.util.FixedClock;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
+import com.pennypilot.api.config.TestJwtConfig;
 import com.pennypilot.api.dto.category.CategoryRuleResponse;
 import com.pennypilot.api.dto.category.CreateCategoryRuleRequest;
 import com.pennypilot.api.dto.category.UpdateCategoryRuleRequest;
@@ -13,14 +12,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -30,17 +26,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryRuleController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, CategoryRuleControllerTest.JwtTestConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, TestJwtConfig.class})
 class CategoryRuleControllerTest {
-
-    @TestConfiguration
-    static class JwtTestConfig {
-        @Bean
-        JwtService jwtService() {
-            AuthProperties props = new AuthProperties(8, "test-secret-key-that-is-long-enough-for-hmac-sha", 86400000L);
-            return new JwtService(props, new FixedClock(Instant.now()));
-        }
-    }
 
     @Autowired
     private MockMvc mockMvc;

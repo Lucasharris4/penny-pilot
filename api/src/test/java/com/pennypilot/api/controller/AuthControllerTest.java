@@ -1,9 +1,8 @@
 package com.pennypilot.api.controller;
 
-import com.pennypilot.api.config.AuthProperties;
-import com.pennypilot.api.util.FixedClock;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.config.SecurityConfig;
+import com.pennypilot.api.config.TestJwtConfig;
 import com.pennypilot.api.dto.auth.LoginRequest;
 import com.pennypilot.api.dto.auth.LoginResponse;
 import com.pennypilot.api.dto.auth.RegisterRequest;
@@ -13,8 +12,6 @@ import com.pennypilot.api.service.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,17 +25,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, AuthControllerTest.JwtTestConfig.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, TestJwtConfig.class})
 class AuthControllerTest {
-
-    @TestConfiguration
-    static class JwtTestConfig {
-        @Bean
-        JwtService jwtService() {
-            AuthProperties props = new AuthProperties(8, "test-secret-key-that-is-long-enough-for-hmac-sha", 86400000L);
-            return new JwtService(props, new FixedClock(Instant.now()));
-        }
-    }
 
     @Autowired
     private MockMvc mockMvc;

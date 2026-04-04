@@ -37,11 +37,11 @@ Status: Not Started
 
 ### Story: Category color picker
 Add a visual color picker to category creation and editing flows. Users should be able to select a color visually rather than entering hex codes. No backend changes needed — the API already accepts/returns hex strings.
-- [ ] Complete
+- [x] Complete
 
 ### Story: Production security hardening
 Reject default secrets (JWT_SECRET, CREDENTIAL_ENCRYPTION_KEY) on startup when running with the `prod` profile — app should fail to start with a clear error message. Enforce HTTPS via `X-Forwarded-Proto` header check and HSTS response header in prod profile. Non-HTTPS requests return 403 with a helpful error. Dev profile remains unrestricted for local development.
-- [ ] Complete
+- [x] Complete
 
 ### Story: Settings page
 Frontend page with: change password form, SimpleFIN token management, and default category configuration.
@@ -57,7 +57,7 @@ Add a light/dark theme toggle using Tailwind's dark variant. Persist the user's 
 
 ### Story: Extract shared JWT test configuration
 Extract the duplicated `@TestConfiguration` / `JwtService` bean setup from all `@WebMvcTest` classes into a shared test utility. Every controller test copies the same boilerplate — single source of truth for test JWT config.
-- [ ] Complete
+- [x] Complete
 
 ---
 
