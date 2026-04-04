@@ -5,6 +5,7 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import TransactionsPage from '@/pages/TransactionsPage';
+import AccountsPage from '@/pages/AccountsPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/transactions" replace />} />
       </Routes>

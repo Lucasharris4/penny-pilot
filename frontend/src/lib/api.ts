@@ -100,6 +100,30 @@ export interface CategoryResponse {
   color: string | null;
 }
 
+export interface ProviderResponse {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export interface AccountResponse {
+  id: number;
+  providerId: number;
+  providerName: string;
+  providerAccountId: string;
+  accountName: string;
+  balanceCents: number;
+  lastSyncedAt: string | null;
+}
+
+export interface SyncResponse {
+  transactionsAdded: number;
+  transactionsUpdated: number;
+  transactionsSkipped: number;
+  accountBalanceCents: number;
+  syncedAt: string;
+}
+
 export const api = {
   register(email: string, password: string): Promise<UserResponse> {
     return request('/auth/register', {
@@ -157,6 +181,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, icon, color }),
     });
+  },
+
+  getProviders(): Promise<ProviderResponse[]> {
+    return request('/providers');
+  },
+
+  getAccounts(): Promise<AccountResponse[]> {
+    return request('/accounts');
+  },
+
+  linkAccounts(providerId: number, setupToken?: string): Promise<AccountResponse[]> {
+    return request('/accounts/link', {
+      method: 'POST',
+      body: JSON.stringify({ providerId, setupToken }),
+    });
+  },
+
+  syncAccount(id: number): Promise<SyncResponse> {
+    return request(`/accounts/${id}/sync`, { method: 'POST' });
+  },
+
+  deleteAccount(id: number): Promise<void> {
+    return request(`/accounts/${id}`, { method: 'DELETE' });
   },
 };
 
