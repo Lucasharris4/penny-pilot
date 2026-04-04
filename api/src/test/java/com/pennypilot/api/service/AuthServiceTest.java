@@ -33,6 +33,7 @@ class AuthServiceTest {
     private AuthService authService;
     private JwtService jwtService;
     private CategoryService categoryService;
+    private LoginSyncService loginSyncService;
     private FixedClock clock;
 
     private static final Instant FIXED_TIME = Instant.now();
@@ -47,11 +48,13 @@ class AuthServiceTest {
     void setUp() {
         userRepository = mock(UserRepository.class);
         categoryRepository = mock(CategoryRepository.class);
+        loginSyncService = mock(LoginSyncService.class);
         passwordEncoder = new BCryptPasswordEncoder();
         clock = new FixedClock(FIXED_TIME);
         jwtService = new JwtService(AUTH_PROPS, clock);
         categoryService = new CategoryService(categoryRepository, CATEGORY_PROPS);
-        authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService, categoryService);
+        authService = new AuthService(userRepository, passwordEncoder, AUTH_PROPS, jwtService,
+                categoryService, loginSyncService);
     }
 
     @Test

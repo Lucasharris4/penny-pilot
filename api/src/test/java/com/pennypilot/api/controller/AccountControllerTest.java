@@ -4,8 +4,10 @@ import com.pennypilot.api.config.AuthProperties;
 import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.config.JwtAuthenticationFilter;
 import com.pennypilot.api.dto.account.AccountResponse;
+import com.pennypilot.api.dto.sync.SyncResponse;
 import com.pennypilot.api.entity.ProviderType;
 import com.pennypilot.api.service.AccountService;
+import com.pennypilot.api.service.SyncService;
 
 import com.pennypilot.api.service.JwtService;
 import com.pennypilot.api.util.FixedClock;
@@ -47,6 +49,9 @@ class AccountControllerTest {
 
     @MockitoBean
     private AccountService accountService;
+
+    @MockitoBean
+    private SyncService syncService;
 
     @Autowired
     private JwtService jwtService;
@@ -161,6 +166,39 @@ class AccountControllerTest {
     @Test
     void listAccounts_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/accounts"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- sync ---
+
+    @Test
+    void syncAccount_returns200() throws Exception {
+        when(syncService.syncAccount(1L, 1L)).thenReturn(
+                new SyncResponse(5, 1, 3, 150000, Instant.now()));
+
+        mockMvc.perform(post("/api/accounts/1/sync")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.transactionsAdded").value(5))
+                .andExpect(jsonPath("$.transactionsUpdated").value(1))
+                .andExpect(jsonPath("$.transactionsSkipped").value(3))
+                .andExpect(jsonPath("$.accountBalanceCents").value(150000));
+    }
+
+    @Test
+    void syncAccount_notFound_returns404() throws Exception {
+        when(syncService.syncAccount(1L, 99L))
+                .thenThrow(new SyncService.AccountNotFoundException(99L));
+
+        mockMvc.perform(post("/api/accounts/99/sync")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void syncAccount_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(post("/api/accounts/1/sync"))
                 .andExpect(status().isUnauthorized());
     }
 

@@ -18,15 +18,17 @@ public class AuthService {
     private final AuthProperties authProperties;
     private final JwtService jwtService;
     private final CategoryService categoryService;
+    private final LoginSyncService loginSyncService;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
                        AuthProperties authProperties, JwtService jwtService,
-                       CategoryService categoryService) {
+                       CategoryService categoryService, LoginSyncService loginSyncService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authProperties = authProperties;
         this.jwtService = jwtService;
         this.categoryService = categoryService;
+        this.loginSyncService = loginSyncService;
     }
 
     public UserResponse register(RegisterRequest request) {
@@ -57,6 +59,7 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user.getId(), user.getEmail());
+        loginSyncService.syncIfStale(user.getId());
         return new LoginResponse(token);
     }
 
