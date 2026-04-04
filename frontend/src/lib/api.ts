@@ -124,6 +124,25 @@ export interface SyncResponse {
   syncedAt: string;
 }
 
+export interface CategoryBreakdown {
+  categoryId: number | null;
+  categoryName: string;
+  categoryColor: string;
+  amountCents: number;
+  percentage: number;
+}
+
+export interface DashboardSummaryResponse {
+  incomeCents: number;
+  expensesCents: number;
+  netCents: number;
+  byCategory: CategoryBreakdown[];
+}
+
+export interface AvailableMonthsResponse {
+  months: string[];
+}
+
 export const api = {
   register(email: string, password: string): Promise<UserResponse> {
     return request('/auth/register', {
@@ -204,6 +223,14 @@ export const api = {
 
   deleteAccount(id: number): Promise<void> {
     return request(`/accounts/${id}`, { method: 'DELETE' });
+  },
+
+  getDashboardSummary(startDate: string, endDate: string): Promise<DashboardSummaryResponse> {
+    return request(`/dashboard/summary?startDate=${startDate}&endDate=${endDate}`);
+  },
+
+  getAvailableMonths(): Promise<AvailableMonthsResponse> {
+    return request('/dashboard/available-months');
   },
 };
 

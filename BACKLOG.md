@@ -5,7 +5,7 @@ Status: 🔨 In Progress
 
 ### Story: Dashboard API
 Two endpoints for dashboard data. `GET /api/dashboard/summary?startDate=&endDate=` returns income total, expense total, net cash flow, and per-category breakdown in one response. `GET /api/dashboard/available-months` returns months that have transaction data (descending).
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **`GET /api/dashboard/summary?startDate=&endDate=`** → 200, `{ incomeCents, expensesCents, netCents, byCategory: [{ categoryId, categoryName, categoryColor, amountCents, percentage }] }`. Auth required, user-scoped.
@@ -19,7 +19,7 @@ Two endpoints for dashboard data. `GET /api/dashboard/summary?startDate=&endDate
 
 ### Story: Dashboard UI
 Month selector defaulting to most recent month with data. Summary cards (income, expenses, net cash flow). Category spending donut chart via Recharts. Empty state when no data exists.
-- [ ] Complete
+- [x] Complete
 
 > **Dev notes**:
 > - **Month selector**: populated from `GET /api/dashboard/available-months`. Defaults to first entry (most recent). Changing month re-fetches summary. If no months available, show empty state: "No transaction data yet."
