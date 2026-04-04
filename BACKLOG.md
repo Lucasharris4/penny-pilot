@@ -12,8 +12,8 @@ Reject default secrets (JWT_SECRET, CREDENTIAL_ENCRYPTION_KEY) on startup when r
 - [x] Complete
 
 ### Story: Settings page
-Frontend page with: change password form, SimpleFIN token management, and default category configuration.
-- [ ] Complete
+Frontend page with: change password form, SimpleFIN token management. Default category configuration deferred.
+- [x] Complete
 
 ### Story: Extract shared JWT test configuration
 Extract the duplicated `@TestConfiguration` / `JwtService` bean setup from all `@WebMvcTest` classes into a shared test utility. Every controller test copies the same boilerplate — single source of truth for test JWT config.
