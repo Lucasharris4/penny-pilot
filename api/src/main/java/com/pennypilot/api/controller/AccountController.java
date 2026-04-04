@@ -3,8 +3,11 @@ package com.pennypilot.api.controller;
 import com.pennypilot.api.config.SecurityUtils;
 import com.pennypilot.api.dto.account.AccountResponse;
 import com.pennypilot.api.dto.account.LinkAccountsRequest;
+import com.pennypilot.api.dto.sync.SyncResponse;
 import com.pennypilot.api.provider.ProviderResolver;
+import com.pennypilot.api.provider.SimpleFINProvider;
 import com.pennypilot.api.service.AccountService;
+import com.pennypilot.api.service.SyncService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,9 +24,11 @@ import java.util.List;
 public class AccountController {
 
     private final AccountService accountService;
+    private final SyncService syncService;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, SyncService syncService) {
         this.accountService = accountService;
+        this.syncService = syncService;
     }
 
     @PostMapping("/link")
@@ -34,7 +39,7 @@ public class AccountController {
     @ApiResponse(responseCode = "409", description = "Accounts already linked")
     public ResponseEntity<List<AccountResponse>> linkAccounts(@Valid @RequestBody LinkAccountsRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
-        List<AccountResponse> accounts = accountService.linkAccounts(userId, request.providerId());
+        List<AccountResponse> accounts = accountService.linkAccounts(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(accounts);
     }
 
@@ -44,6 +49,17 @@ public class AccountController {
     public ResponseEntity<List<AccountResponse>> listAccounts() {
         Long userId = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(accountService.listAccounts(userId));
+    }
+
+    @PostMapping("/{id}/sync")
+    @Operation(summary = "Sync transactions for an account")
+    @ApiResponse(responseCode = "200", description = "Sync completed")
+    @ApiResponse(responseCode = "404", description = "Account not found")
+    @ApiResponse(responseCode = "502", description = "Provider error")
+    public ResponseEntity<SyncResponse> syncAccount(@PathVariable Long id) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        SyncResponse response = syncService.syncAccount(userId, id);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
@@ -58,6 +74,12 @@ public class AccountController {
 
     @ExceptionHandler(AccountService.AccountNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(AccountService.AccountNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SyncService.AccountNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSyncAccountNotFound(SyncService.AccountNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(ex.getMessage()));
     }
@@ -77,6 +99,24 @@ public class AccountController {
     @ExceptionHandler(ProviderResolver.ProviderNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleProviderNotSupported(ProviderResolver.ProviderNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SimpleFINProvider.SetupTokenRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleSetupTokenRequired(SimpleFINProvider.SetupTokenRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SimpleFINProvider.ProviderAuthException.class)
+    public ResponseEntity<ErrorResponse> handleProviderAuth(SimpleFINProvider.ProviderAuthException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SimpleFINProvider.ProviderConnectionException.class)
+    public ResponseEntity<ErrorResponse> handleProviderConnection(SimpleFINProvider.ProviderConnectionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 

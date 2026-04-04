@@ -22,14 +22,14 @@ class MockProviderTest {
 
     @Test
     void fetchAccounts_returnsTwoAccounts() {
-        List<ProviderAccount> accounts = provider.fetchAccounts();
+        List<ProviderAccount> accounts = provider.fetchAccounts(null);
 
         assertEquals(2, accounts.size());
     }
 
     @Test
     void fetchAccounts_containsCheckingAndSavings() {
-        List<ProviderAccount> accounts = provider.fetchAccounts();
+        List<ProviderAccount> accounts = provider.fetchAccounts(null);
         List<String> names = accounts.stream().map(ProviderAccount::accountName).toList();
 
         assertTrue(names.contains("Bond Checking"));
@@ -39,7 +39,7 @@ class MockProviderTest {
     @Test
     void fetchTransactions_filtersByAccountId() {
         List<ProviderTransaction> transactions = provider.fetchTransactions(
-                "mock-checking-007", LocalDate.of(2026, 1, 1));
+                null, "mock-checking-007", LocalDate.of(2026, 1, 1), null);
 
         assertTrue(transactions.size() > 0);
         assertTrue(transactions.stream().allMatch(t -> t.accountId().equals("mock-checking-007")));
@@ -48,18 +48,29 @@ class MockProviderTest {
     @Test
     void fetchTransactions_filtersBySinceDate() {
         List<ProviderTransaction> all = provider.fetchTransactions(
-                "mock-checking-007", LocalDate.of(2026, 1, 1));
+                null, "mock-checking-007", LocalDate.of(2026, 1, 1), null);
         List<ProviderTransaction> recent = provider.fetchTransactions(
-                "mock-checking-007", LocalDate.of(2026, 3, 20));
+                null, "mock-checking-007", LocalDate.of(2026, 3, 20), null);
 
         assertTrue(recent.size() < all.size());
         assertTrue(recent.stream().allMatch(t -> !t.date().isBefore(LocalDate.of(2026, 3, 20))));
     }
 
     @Test
+    void fetchTransactions_filtersByUntilDate() {
+        List<ProviderTransaction> all = provider.fetchTransactions(
+                null, "mock-checking-007", LocalDate.of(2026, 1, 1), null);
+        List<ProviderTransaction> limited = provider.fetchTransactions(
+                null, "mock-checking-007", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 1));
+
+        assertTrue(limited.size() < all.size());
+        assertTrue(limited.stream().allMatch(t -> !t.date().isAfter(LocalDate.of(2026, 3, 1))));
+    }
+
+    @Test
     void fetchTransactions_returnsEmptyForUnknownAccount() {
         List<ProviderTransaction> transactions = provider.fetchTransactions(
-                "nonexistent", LocalDate.of(2026, 1, 1));
+                null, "nonexistent", LocalDate.of(2026, 1, 1), null);
 
         assertTrue(transactions.isEmpty());
     }
@@ -67,7 +78,7 @@ class MockProviderTest {
     @Test
     void fetchTransactions_containsCreditsAndDebits() {
         List<ProviderTransaction> transactions = provider.fetchTransactions(
-                "mock-checking-007", LocalDate.of(2026, 1, 1));
+                null, "mock-checking-007", LocalDate.of(2026, 1, 1), null);
 
         assertTrue(transactions.stream().anyMatch(t -> t.transactionType() == TransactionType.CREDIT));
         assertTrue(transactions.stream().anyMatch(t -> t.transactionType() == TransactionType.DEBIT));

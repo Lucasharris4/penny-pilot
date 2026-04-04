@@ -2,6 +2,7 @@ package com.pennypilot.api.provider;
 
 import com.pennypilot.api.dto.provider.ProviderAccount;
 import com.pennypilot.api.dto.provider.ProviderTransaction;
+import com.pennypilot.api.provider.credentials.ProviderCredentials;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class MockProvider implements TransactionProvider {
@@ -34,15 +36,21 @@ public class MockProvider implements TransactionProvider {
     }
 
     @Override
-    public List<ProviderAccount> fetchAccounts() {
+    public ProviderCredentials resolveCredentialsForLinking(Long userId, Map<String, String> args) {
+        return null;
+    }
+
+    @Override
+    public List<ProviderAccount> fetchAccounts(ProviderCredentials credentials) {
         return accounts;
     }
 
     @Override
-    public List<ProviderTransaction> fetchTransactions(String accountId, LocalDate since) {
+    public List<ProviderTransaction> fetchTransactions(ProviderCredentials credentials, String accountId, LocalDate since, LocalDate until) {
         return transactions.stream()
                 .filter(t -> t.accountId().equals(accountId))
                 .filter(t -> !t.date().isBefore(since))
+                .filter(t -> until == null || !t.date().isAfter(until))
                 .toList();
     }
 }

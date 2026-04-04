@@ -1,18 +1,22 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.account.AccountResponse;
+import com.pennypilot.api.dto.account.LinkAccountsRequest;
 import com.pennypilot.api.dto.provider.ProviderAccount;
 import com.pennypilot.api.entity.Account;
 import com.pennypilot.api.entity.Provider;
 import com.pennypilot.api.provider.ProviderResolver;
 import com.pennypilot.api.provider.TransactionProvider;
+import com.pennypilot.api.provider.credentials.ProviderCredentials;
 import com.pennypilot.api.repository.AccountRepository;
 import com.pennypilot.api.repository.ProviderRepository;
 import com.pennypilot.api.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AccountService {
@@ -32,16 +36,24 @@ public class AccountService {
         this.providerResolver = providerResolver;
     }
 
-    public List<AccountResponse> linkAccounts(Long userId, Long providerId) {
+    public List<AccountResponse> linkAccounts(Long userId, LinkAccountsRequest request) {
         if (accountRepository.existsByUserId(userId)) {
             throw new AccountsAlreadyLinkedException();
         }
 
-        Provider provider = providerRepository.findById(providerId)
-                .orElseThrow(() -> new ProviderNotFoundException(providerId));
+        Provider provider = providerRepository.findById(request.providerId())
+                .orElseThrow(() -> new ProviderNotFoundException(request.providerId()));
 
         TransactionProvider transactionProvider = providerResolver.resolve(provider.getName());
-        List<ProviderAccount> providerAccounts = transactionProvider.fetchAccounts();
+
+        Map<String, String> args = new HashMap<>();
+        args.put("providerId", provider.getId().toString());
+        if (request.setupToken() != null) {
+            args.put("setupToken", request.setupToken());
+        }
+        ProviderCredentials credentials = transactionProvider.resolveCredentialsForLinking(userId, args);
+
+        List<ProviderAccount> providerAccounts = transactionProvider.fetchAccounts(credentials);
 
         List<Account> accounts = providerAccounts.stream()
                 .map(pa -> {
@@ -93,4 +105,5 @@ public class AccountService {
             super("Provider not found: " + id);
         }
     }
+
 }

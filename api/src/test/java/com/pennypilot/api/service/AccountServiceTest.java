@@ -1,6 +1,7 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.account.AccountResponse;
+import com.pennypilot.api.dto.account.LinkAccountsRequest;
 import com.pennypilot.api.entity.Account;
 import com.pennypilot.api.entity.Provider;
 import com.pennypilot.api.entity.ProviderType;
@@ -44,7 +45,8 @@ class AccountServiceTest {
         Map<ProviderType, TransactionProvider> providerMap = Map.of(ProviderType.MOCK, mockProvider);
         ProviderResolver providerResolver = new ProviderResolver(providerMap);
 
-        accountService = new AccountService(accountRepository, providerRepository, transactionRepository, providerResolver);
+        accountService = new AccountService(accountRepository, providerRepository,
+                transactionRepository, providerResolver);
 
         mockProviderEntity = new Provider();
         mockProviderEntity.setId(MOCK_PROVIDER_ID);
@@ -67,7 +69,7 @@ class AccountServiceTest {
             return accounts;
         });
 
-        List<AccountResponse> result = accountService.linkAccounts(USER_ID, MOCK_PROVIDER_ID);
+        List<AccountResponse> result = accountService.linkAccounts(USER_ID, new LinkAccountsRequest(MOCK_PROVIDER_ID, null));
 
         assertEquals(2, result.size());
         assertEquals("Bond Checking", result.get(0).accountName());
@@ -82,7 +84,7 @@ class AccountServiceTest {
         when(accountRepository.existsByUserId(USER_ID)).thenReturn(true);
 
         assertThrows(AccountService.AccountsAlreadyLinkedException.class,
-                () -> accountService.linkAccounts(USER_ID, MOCK_PROVIDER_ID));
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(MOCK_PROVIDER_ID, null)));
 
         verify(accountRepository, never()).saveAll(any());
     }
@@ -93,7 +95,7 @@ class AccountServiceTest {
         when(providerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(AccountService.ProviderNotFoundException.class,
-                () -> accountService.linkAccounts(USER_ID, 99L));
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(99L, null)));
     }
 
     @Test
@@ -106,7 +108,7 @@ class AccountServiceTest {
         when(providerRepository.findById(2L)).thenReturn(Optional.of(simplefinProvider));
 
         assertThrows(ProviderResolver.ProviderNotSupportedException.class,
-                () -> accountService.linkAccounts(USER_ID, 2L));
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(2L, null)));
     }
 
     // --- listAccounts ---
