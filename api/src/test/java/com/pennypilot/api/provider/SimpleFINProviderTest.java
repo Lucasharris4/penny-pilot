@@ -13,6 +13,8 @@ import org.springframework.web.client.RestClient;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
@@ -89,7 +91,7 @@ class SimpleFINProviderTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        provider = new SimpleFINProvider(builder);
+        provider = new SimpleFINProvider(builder, mock(CredentialResolver.class));
     }
 
     // --- claimSetupToken ---

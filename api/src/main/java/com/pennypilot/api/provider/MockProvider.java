@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class MockProvider implements TransactionProvider {
@@ -32,6 +33,11 @@ public class MockProvider implements TransactionProvider {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load mock provider data", e);
         }
+    }
+
+    @Override
+    public ProviderCredentials resolveCredentialsForLinking(Long userId, Map<String, String> args) {
+        return null;
     }
 
     @Override

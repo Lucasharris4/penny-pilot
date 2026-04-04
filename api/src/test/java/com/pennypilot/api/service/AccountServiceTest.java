@@ -1,10 +1,10 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.account.AccountResponse;
+import com.pennypilot.api.dto.account.LinkAccountsRequest;
 import com.pennypilot.api.entity.Account;
 import com.pennypilot.api.entity.Provider;
 import com.pennypilot.api.entity.ProviderType;
-import com.pennypilot.api.provider.CredentialResolver;
 import com.pennypilot.api.provider.MockProvider;
 import com.pennypilot.api.provider.ProviderResolver;
 import com.pennypilot.api.provider.TransactionProvider;
@@ -28,7 +28,6 @@ class AccountServiceTest {
     private AccountRepository accountRepository;
     private ProviderRepository providerRepository;
     private TransactionRepository transactionRepository;
-    private CredentialResolver credentialResolver;
     private AccountService accountService;
 
     private static final Long USER_ID = 1L;
@@ -41,14 +40,13 @@ class AccountServiceTest {
         accountRepository = mock(AccountRepository.class);
         providerRepository = mock(ProviderRepository.class);
         transactionRepository = mock(TransactionRepository.class);
-        credentialResolver = mock(CredentialResolver.class);
 
         MockProvider mockProvider = new MockProvider();
         Map<ProviderType, TransactionProvider> providerMap = Map.of(ProviderType.MOCK, mockProvider);
         ProviderResolver providerResolver = new ProviderResolver(providerMap);
 
         accountService = new AccountService(accountRepository, providerRepository,
-                transactionRepository, providerResolver, credentialResolver);
+                transactionRepository, providerResolver);
 
         mockProviderEntity = new Provider();
         mockProviderEntity.setId(MOCK_PROVIDER_ID);
@@ -71,7 +69,7 @@ class AccountServiceTest {
             return accounts;
         });
 
-        List<AccountResponse> result = accountService.linkAccounts(USER_ID, MOCK_PROVIDER_ID, null);
+        List<AccountResponse> result = accountService.linkAccounts(USER_ID, new LinkAccountsRequest(MOCK_PROVIDER_ID, null));
 
         assertEquals(2, result.size());
         assertEquals("Bond Checking", result.get(0).accountName());
@@ -86,7 +84,7 @@ class AccountServiceTest {
         when(accountRepository.existsByUserId(USER_ID)).thenReturn(true);
 
         assertThrows(AccountService.AccountsAlreadyLinkedException.class,
-                () -> accountService.linkAccounts(USER_ID, MOCK_PROVIDER_ID, null));
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(MOCK_PROVIDER_ID, null)));
 
         verify(accountRepository, never()).saveAll(any());
     }
@@ -97,7 +95,7 @@ class AccountServiceTest {
         when(providerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(AccountService.ProviderNotFoundException.class,
-                () -> accountService.linkAccounts(USER_ID, 99L, null));
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(99L, null)));
     }
 
     @Test
@@ -110,20 +108,7 @@ class AccountServiceTest {
         when(providerRepository.findById(2L)).thenReturn(Optional.of(simplefinProvider));
 
         assertThrows(ProviderResolver.ProviderNotSupportedException.class,
-                () -> accountService.linkAccounts(USER_ID, 2L, null));
-    }
-
-    @Test
-    void linkAccounts_simplefin_missingToken_throws() {
-        when(accountRepository.existsByUserId(USER_ID)).thenReturn(false);
-
-        Provider simplefinProvider = new Provider();
-        simplefinProvider.setId(2L);
-        simplefinProvider.setName(ProviderType.SIMPLEFIN);
-
-        // Need SimpleFIN in the provider map for this test
-        // But since our setUp only has MOCK, this will throw ProviderNotSupportedException first
-        // This is tested separately when SimpleFIN is in the provider map
+                () -> accountService.linkAccounts(USER_ID, new LinkAccountsRequest(2L, null)));
     }
 
     // --- listAccounts ---

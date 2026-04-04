@@ -30,11 +30,7 @@ public class CredentialResolver {
                 .orElseThrow(() -> new CredentialNotFoundException(userId, providerId));
 
         String decrypted = encryptor.decrypt(stored.getCredential());
-
-        return switch (providerType) {
-            case SIMPLEFIN -> new SimpleFINCredentials(decrypted);
-            case MOCK -> null;
-        };
+        return new SimpleFINCredentials(decrypted);
     }
 
     public void store(Long userId, Long providerId, String credential) {

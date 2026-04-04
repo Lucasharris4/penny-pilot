@@ -39,7 +39,7 @@ public class AccountController {
     @ApiResponse(responseCode = "409", description = "Accounts already linked")
     public ResponseEntity<List<AccountResponse>> linkAccounts(@Valid @RequestBody LinkAccountsRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
-        List<AccountResponse> accounts = accountService.linkAccounts(userId, request.providerId(), request.setupToken());
+        List<AccountResponse> accounts = accountService.linkAccounts(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(accounts);
     }
 
@@ -102,8 +102,8 @@ public class AccountController {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler(AccountService.SetupTokenRequiredException.class)
-    public ResponseEntity<ErrorResponse> handleSetupTokenRequired(AccountService.SetupTokenRequiredException ex) {
+    @ExceptionHandler(SimpleFINProvider.SetupTokenRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleSetupTokenRequired(SimpleFINProvider.SetupTokenRequiredException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage()));
     }

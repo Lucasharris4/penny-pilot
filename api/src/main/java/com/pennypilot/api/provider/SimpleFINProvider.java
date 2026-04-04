@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class SimpleFINProvider implements TransactionProvider {
@@ -26,10 +27,24 @@ public class SimpleFINProvider implements TransactionProvider {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final CredentialResolver credentialResolver;
 
-    public SimpleFINProvider(RestClient.Builder restClientBuilder) {
+    public SimpleFINProvider(RestClient.Builder restClientBuilder, CredentialResolver credentialResolver) {
         this.restClient = restClientBuilder.build();
         this.objectMapper = new ObjectMapper();
+        this.credentialResolver = credentialResolver;
+    }
+
+    @Override
+    public ProviderCredentials resolveCredentialsForLinking(Long userId, Map<String, String> args) {
+        String setupToken = args.get("setupToken");
+        if (setupToken == null || setupToken.isBlank()) {
+            throw new SetupTokenRequiredException();
+        }
+        String accessUrl = claimSetupToken(setupToken);
+        String providerId = args.get("providerId");
+        credentialResolver.store(userId, Long.parseLong(providerId), accessUrl);
+        return new SimpleFINCredentials(accessUrl);
     }
 
     public String claimSetupToken(String setupToken) {
@@ -109,14 +124,22 @@ public class SimpleFINProvider implements TransactionProvider {
     }
 
     private ProviderAccount mapAccount(JsonNode node) {
-        String id = node.path("id").asText();
-        String name = node.path("name").asText();
+        String id = node.path("id").asText(null);
+        if (id == null) {
+            throw new ProviderConnectionException("SimpleFIN account missing 'id' field",
+                    new IllegalStateException("Missing required field"));
+        }
+        String name = node.path("name").asText("Unknown Account");
         int balanceCents = toCents(node.path("balance").asText("0"));
         return new ProviderAccount(id, name, balanceCents);
     }
 
     private ProviderTransaction mapTransaction(String accountId, JsonNode node) {
-        String id = node.path("id").asText();
+        String id = node.path("id").asText(null);
+        if (id == null) {
+            throw new ProviderConnectionException("SimpleFIN transaction missing 'id' field",
+                    new IllegalStateException("Missing required field"));
+        }
         String amountStr = node.path("amount").asText("0");
         int amountCents = toCents(amountStr);
         TransactionType type = amountCents >= 0 ? TransactionType.CREDIT : TransactionType.DEBIT;
@@ -125,8 +148,10 @@ public class SimpleFINProvider implements TransactionProvider {
         String memo = node.path("memo").asText("");
         String description = memo.isBlank() ? node.path("description").asText("") : memo;
 
-        long posted = node.path("posted").asLong();
-        LocalDate date = Instant.ofEpochSecond(posted).atZone(ZoneOffset.UTC).toLocalDate();
+        long posted = node.path("posted").asLong(0);
+        LocalDate date = posted > 0
+                ? Instant.ofEpochSecond(posted).atZone(ZoneOffset.UTC).toLocalDate()
+                : LocalDate.EPOCH;
 
         return new ProviderTransaction(
                 id,
@@ -151,6 +176,12 @@ public class SimpleFINProvider implements TransactionProvider {
             throw new ProviderAuthException("SimpleFIN requires SimpleFINCredentials");
         }
         return simpleFIN.accessUrl();
+    }
+
+    public static class SetupTokenRequiredException extends RuntimeException {
+        public SetupTokenRequiredException() {
+            super("Setup token is required for SimpleFIN provider");
+        }
     }
 
     public static class ProviderAuthException extends RuntimeException {
