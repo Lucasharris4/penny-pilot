@@ -1,142 +1,34 @@
 # Backlog
 
-## Epic: Accounts & SimpleFIN Integration
-Status: In progress 🔄
-
-### Story: TransactionProvider interface and MockProvider 
-Define the `TransactionProvider` interface with methods for fetching accounts and transactions. Implement `MockProvider` with preset fake data scenarios (normal spending, refunds, duplicates, zero-amount, missing merchant names). MockProvider should be selectable as a provider type when linking an account.
-- [x] Complete ✅
-
-> **Dev notes**:
-> - **Provider DTOs live in `dto.provider`** — `ProviderAccount` and `ProviderTransaction` are records, not entities. Each provider maps its third-party model into these shared DTOs (adapter pattern). Services never see provider-specific data models.
-> - **MockProvider** loads James Bond test data from `mock-provider-data.json` (2 accounts, 7 transactions). `@Component` for now — will need a factory or qualifier when SimpleFINProvider arrives to select by `ProviderType`.
-> - **Account entity fleshed out** with `providerType`, `providerAccountId`, `accountName`, `balanceCents`, `lastSyncedAt`.
-> - **Provider selection design decision (pending):** Provider type should be chosen at registration (SimpleFIN, Plaid, Manual CSV, Mock). Mock only available in controlled test environments (behind env flag like `ENABLE_MOCK_PROVIDER=true`). Provider can be changed later in Settings. Groom this when working on the Onboarding/Settings stories.
-
-### Story: Account CRUD API ✅
-REST endpoints for linked bank accounts. `POST /api/accounts/link` fetches accounts from the provider and persists them. `GET /api/accounts` lists accounts with balance and last sync time. `DELETE /api/accounts/{id}` unlinks an account and cascade-deletes its transactions.
-- [x] Complete
-
-> **Dev notes**:
-> - **New `Provider` entity + lookup table.** Seeded on startup: MOCK, SIMPLEFIN, PLAID. `providers` table: `id`, `name`, `description`. `accounts.provider_id` FK replaces the `providerType` enum column on the Account entity. `ProviderType` enum still exists in code for programmatic reference, but DB relationship is normalized.
-> - **`POST /api/accounts/link`** — body: `{ providerId }`. Resolves provider, calls `provider.fetchAccounts()`, creates one `Account` row per returned `ProviderAccount`. Returns `List<AccountResponse>` (201). Rejects if user already has linked accounts (one provider per user for MVP).
-> - **`GET /api/accounts`** → 200, `List<AccountResponse>`. Response shape: `{ id, providerId, providerName, providerAccountId, accountName, balanceCents, lastSyncedAt }`.
-> - **`DELETE /api/accounts/{id}`** → 204. Cascade-deletes all transactions for that account. 404 if not found or not owned by user.
-> - **No `PUT`.** Account data comes from the provider — nothing user-editable.
-> - **Provider resolution:** `providerId` → lookup `Provider` entity → map `provider.name` to `ProviderType` enum → switch to correct `TransactionProvider` Spring bean. Simple switch for now (only MOCK active).
-> - **New classes:** `Provider` entity, `ProviderRepository`, `ProviderSeeder` (ApplicationRunner), `AccountRepository`, `AccountService`, `AccountController`, `LinkAccountsRequest` DTO, `AccountResponse` DTO, `AccountNotFoundException`.
-> - **`AccountRepository`:** `findByUserId`, `findByIdAndUserId`, `existsByUserId` (for duplicate-link prevention).
-> - **Tests:** `AccountServiceTest` (plain JUnit, mocked repos, real MockProvider), `AccountControllerTest` (`@WebMvcTest`, stubbed service).
-
-### Story: Sync endpoint and pipeline ✅
-`POST /api/accounts/{id}/sync` triggers a sync for a single account. Pulls transactions from the provider, deduplicates by `external_id` (updates if data changed), applies auto-categorization via user's category rules, and persists new/updated transactions. Also serves as the foundation for scheduled background sync.
-- [x] Complete
-
-> **Dev notes**:
-> - **Endpoint:** `POST /api/accounts/{id}/sync` → 200, `SyncResponse { transactionsAdded, transactionsUpdated, transactionsSkipped, accountBalanceCents, syncedAt }`.
-> - **Pipeline steps:**
->   1. Load `Account` by id + userId → 404 if not found/not owned
->   2. Resolve `TransactionProvider` via `ProviderResolver` and `ProviderCredentials` via `CredentialResolver` (null for Mock)
->   3. `provider.fetchTransactions(credentials, providerAccountId, sinceDate, LocalDate.now())` — sinceDate = `lastSyncedAt` or epoch if never synced
->   4. `provider.fetchAccounts(credentials)` → find matching account by `providerAccountId` → update `account.balanceCents` (SimpleFIN returns all accounts in one call anyway; for MockProvider filter client-side)
->   5. Batch-load existing `externalId`s for this account from DB (efficient Set lookup)
->   6. For each provider transaction:
->      - externalId exists + data matches → **skip**
->      - externalId exists + data differs → **update** existing transaction
->      - new → auto-categorize via `CategoryRuleService.findMatchingCategoryId(rules, merchantName)` (merchant name only, no description fallback), then **create**
->   7. Batch persist new/updated transactions
->   8. Update `account.lastSyncedAt`
->   9. Return `SyncResponse`
-> - **No merchant name map.** Categorization uses only user's `CategoryRule`s (seeded defaults + user-created). Built-in merchant map deferred.
-> - **No recurring transaction detection.** Users categorize as "Subscription"/"Recurring" manually. `is_recurring` field not needed.
-> - **Dedup query:** `TransactionRepository.findByAccountIdAndExternalIdIn(Long accountId, Collection<String> externalIds)` — returns existing transactions for comparison. Batch lookup, not per-transaction.
-> - **Sync triggers (implement in-app for now):**
->   1. **Manual:** `POST /api/accounts/{id}/sync` escape hatch for users who need fresh data
->   2. **On login:** trigger sync if `lastSyncedAt` > 1 hour stale (configurable)
->   3. **Scheduled:** `@Scheduled` cron job (e.g., daily 2 AM) syncs all users' accounts. Configurable via `application.yml`.
-> - **Design for parallelism:** `syncAccount(accountId)` must be a self-contained, stateless unit of work so the scheduled job can process many users' accounts concurrently (thread pool) in the future.
-> - **Error handling:** Provider failures (network, auth) return 502 with error message. Scheduled sync logs errors per-account and continues to next account.
-> - **New classes:** `SyncService`, `SyncResponse` DTO. Sync endpoint can live on `AccountController` (nested resource pattern: `/api/accounts/{id}/sync`).
-> - **Tests:** `SyncServiceTest` (plain JUnit, mocked repos + mocked provider, real `CategoryRuleService` + real `GlobMatcher`), controller test for sync endpoint.
-
-### Story: SimpleFIN provider implementation ✅
-Implement `SimpleFINProvider` against the SimpleFIN Bridge API. Exchange setup token for access URL. Fetch accounts and transactions from the access URL. Map SimpleFIN data to internal models.
-- [x] Complete
-
-> **Dev notes**:
-> - **`ProviderCredentials` marker interface** — each provider defines its own credential shape. `SimpleFINCredentials(String accessUrl)` implements `ProviderCredentials`. MockProvider receives `null` (no credentials needed). Future providers (e.g., Plaid) define their own record implementing the interface. Open/Closed compliant — adding a provider never modifies existing credential classes.
-> - **`TransactionProvider` interface change** — methods gain `ProviderCredentials credentials` param (nullable) and `fetchTransactions` gains `LocalDate until` param. MockProvider accepts and ignores both. Full updated interface:
->   ```
->   List<ProviderAccount> fetchAccounts(ProviderCredentials credentials);
->   List<ProviderTransaction> fetchTransactions(ProviderCredentials credentials, String accountId, LocalDate since, LocalDate until);
->   ```
-> - **`SimpleFINProvider`** — `@Component`, implements `TransactionProvider`. Uses Spring `RestClient` for HTTP calls.
->   - `claimSetupToken(String setupToken)` → `POST https://bridge.simplefin.org/simplefin/claim` with setup token as body → returns access URL string. One-time call during account linking. Provider owns the API call, service layer owns persistence.
->   - `fetchAccounts(ProviderCredentials)` → casts to `SimpleFINCredentials`, calls `GET {accessUrl}/accounts` → maps to `List<ProviderAccount>`.
->   - `fetchTransactions(ProviderCredentials, accountId, since, until)` → `GET {accessUrl}/accounts?account={accountId}&start-date={since}&end-date={until}` (unix timestamps) → maps embedded transactions to `List<ProviderTransaction>`.
-> - **Data mapping:**
->   - Amounts: decimal strings (e.g., `"-45.99"`) → multiply by 100, round to int (cents). Negative = DEBIT, positive = CREDIT.
->   - Dates: `posted` (unix timestamp) → `LocalDate`.
->   - Fields: `payee` → `merchantName`, `memo`/`description` → `description`, `id` → `externalId` (for dedup).
-> - **`UserProviderCredential` entity** — `user_id` (FK), `provider_id` (FK), `credential` (String, AES-encrypted). One row per user-provider pair.
-> - **AES encryption at rest** — access URL contains HTTP Basic Auth creds, first-class PI. Encrypt with key from `CREDENTIAL_ENCRYPTION_KEY` env var. Homelabbers set this in `docker-compose.yml` alongside `JWT_SECRET`. Cloud deployment would use secrets manager.
-> - **`CredentialResolver`** — loads `UserProviderCredential` from DB, decrypts, deserializes into the correct `ProviderCredentials` subtype based on provider. Returns `null` for providers that don't need credentials (Mock).
-> - **Account linking flow change:** `LinkAccountsRequest` grows: `{ providerId, setupToken? }`. For MOCK, `setupToken` is null/ignored. For SIMPLEFIN, it's required — `SimpleFINProvider.claimSetupToken()` is called, access URL stored via `CredentialResolver`/DAO, then `fetchAccounts` proceeds.
-> - **Error handling:** `ProviderAuthException` (401/403 from SimpleFIN), `ProviderConnectionException` (network/timeout). Controller maps provider errors to 502.
-> - **HTTP client:** Spring `RestClient` (synchronous, simple, fits our use case).
-> - **Ripple effects:** Interface change touches `MockProvider`, `ProviderResolver`, `AccountService`, `SyncService` (Story 3), and all related tests. Coordinate with Sync story — if Sync is done first, this story updates the interface and fixes the callsites. If done together, build interface change into this story.
-> - **Tests:** `SimpleFINProviderTest` — mock `RestClient` to return canned SimpleFIN JSON. Test data mapping (amounts→cents, timestamps→dates, sign→transaction type). Test `claimSetupToken` flow. Test error scenarios (auth failure, network error). Test `CredentialResolver` encryption round-trip.
-
-### Story: Sidebar Navigation
-Shared layout component with sidebar nav. Routes: Transactions (main/default), Accounts. Dashboard link present but points to placeholder. Logout in sidebar.
-- [x] Complete
-
-> **Dev notes**:
-> - **Default route changes** from `/dashboard` to `/transactions`. `*` catch-all also redirects to `/transactions`.
-> - **Sidebar**: persistent left sidebar. Links: Transactions, Accounts, Dashboard (placeholder). Logout button at bottom. Active route highlighted.
-> - **Layout component** wraps all authenticated pages. Login/Register pages do NOT get the sidebar.
-> - **Shadcn components**: install as needed (e.g., separator, tooltip).
-
-### Story: Accounts UI
-Backend: `GET /api/providers` endpoint and MockProvider visibility config. Frontend: Accounts page listing linked accounts with balance and last sync time. Link account flow (select provider, enter SimpleFIN token if applicable). Sync and remove account actions.
-- [x] Complete
-
-> **Dev notes**:
-> - **`GET /api/providers`** → 200, `[{ id, name, description }]`. Auth required. Filters out MOCK when `app.providers.mock-enabled=false`.
-> - **`app.providers.mock-enabled`** property in `application.yml`, default `false`. `application-dev.yml` overrides to `true`. Docker-compose can set `SPRING_PROFILES_ACTIVE=dev` to enable. `ProviderSeeder` always seeds MOCK (for DB/test consistency) but the endpoint filters the response.
-> - **Accounts page** at `/accounts`: lists linked accounts (name, balance in dollars, last sync as relative time). Each account row has Sync button and Remove button (with confirmation).
-> - **"Link Account"** shown only when no accounts exist. Flow: select provider from `GET /api/providers` → enter SimpleFIN setup token if SIMPLEFIN selected → `POST /api/accounts/link` → auto-trigger sync on all returned accounts → show sync results.
-> - **One provider per user** for now. After linking, page shows accounts + sync/remove only.
-> - **API client additions**: `getProviders()`, `getAccounts()`, `linkAccounts(providerId, setupToken?)`, `syncAccount(id)`, `deleteAccount(id)`.
-> - **Tests**: Controller test for `GET /api/providers` endpoint. Frontend: smoke test for Accounts page.
-
-### Story: Transactions Empty State
-Update transactions page empty state to guide first-run users: "No transactions yet. Link a bank account to get started." with a CTA linking to `/accounts`. This replaces a dedicated onboarding page.
-- [x] Complete
-
-> **Dev notes**:
-> - Replaces the original "Onboarding flow" story. No dedicated onboarding page — good empty states ARE the onboarding.
-> - Check if user has accounts (can use existing transaction emptiness as the signal — if no transactions, show the CTA).
-> - Simple: if `GET /api/transactions` returns empty and no filter is active, show the onboarding empty state. If filters are active and results are empty, show "No matching transactions."
-
----
-
 ## Epic: Dashboard
-Status: Not Started
+Status: 🔨 In Progress
 
-### Story: Dashboard API endpoints
-`GET /api/dashboard/summary` returns total income, total expenses, and net cash flow for a time range. `GET /api/dashboard/by-category` returns spending per category with amounts and percentages. `GET /api/dashboard/subscriptions` returns detected recurring charges with monthly total. `GET /api/dashboard/available-months` returns a list of months that have transaction data (used by the month selector).
+### Story: Dashboard API
+Two endpoints for dashboard data. `GET /api/dashboard/summary?startDate=&endDate=` returns income total, expense total, net cash flow, and per-category breakdown in one response. `GET /api/dashboard/available-months` returns months that have transaction data (descending).
 - [ ] Complete
 
-> **Note:** A `GET /api/transactions/summary` endpoint was previously implemented and removed during Sprint 2 (wasn't groomed). During grooming, evaluate whether the dashboard needs a dedicated summary endpoint or can compute summaries from existing transaction data on the frontend.
+> **Dev notes**:
+> - **`GET /api/dashboard/summary?startDate=&endDate=`** → 200, `{ incomeCents, expensesCents, netCents, byCategory: [{ categoryId, categoryName, categoryColor, amountCents, percentage }] }`. Auth required, user-scoped.
+> - Two DB queries: `SUM(amount_cents) GROUP BY transaction_type` for totals, `SUM(amount_cents) GROUP BY category_id` with JOIN to categories for breakdown. Both filtered by user's account IDs + date range. Sub-millisecond for typical personal finance volumes.
+> - Percentage calculated in Java: each category's amount / total expenses * 100.
+> - Uncategorized transactions (null category_id) grouped as "Other" in the response.
+> - **`GET /api/dashboard/available-months`** → 200, `{ months: ["2026-04", "2026-03", ...] }`. Distinct `YYYY-MM` values from transaction dates for the user's accounts, descending.
+> - **New classes:** `DashboardService`, `DashboardController`, `DashboardSummaryResponse`, `CategoryBreakdown` (inner record), `AvailableMonthsResponse`.
+> - **Tests:** `DashboardServiceTest` (plain JUnit, mocked repos), `DashboardControllerTest` (`@WebMvcTest`, stubbed service).
+> - Subscriptions endpoint dropped (stretch goal). Summary and by-category combined into single endpoint — dashboard always needs both.
 
-### Story: Dashboard UI — time range selection
-Default view on login shows the most recent month that has transaction data (not the current calendar month). Month selector dropdown populated from available-months endpoint. Selecting a month with no data shows "No data for [Month Year]" message. Custom date range picker with presets (Quarter, Year). All dashboard components update when the range changes.
+### Story: Dashboard UI
+Month selector defaulting to most recent month with data. Summary cards (income, expenses, net cash flow). Category spending donut chart via Recharts. Empty state when no data exists.
 - [ ] Complete
 
-### Story: Dashboard UI — data display
-For the selected time range, show: income total, expenditures total, net cash flow (income minus expenditures). Category spending pie/donut chart showing percentage breakdown. Subscription tracker listing recurring charges with monthly total. Recent transactions preview (last 20, chronological) showing date, amount, category, and payee — with a link to the full transactions page.
-- [ ] Complete
+> **Dev notes**:
+> - **Month selector**: populated from `GET /api/dashboard/available-months`. Defaults to first entry (most recent). Changing month re-fetches summary. If no months available, show empty state: "No transaction data yet."
+> - **Summary cards**: three cards — Income (green), Expenses (red), Net Cash Flow (green if positive, red if negative). Format as dollars from cents.
+> - **Donut chart**: Recharts `PieChart` with `Pie` component. Each slice colored by `categoryColor`. Tooltip shows category name + amount + percentage. Center label shows total expenses.
+> - **No custom date range picker for MVP.** Month selector only. Quarter/Year presets deferred.
+> - **No subscription tracker.** Deferred to stretch goals.
+> - **No recent transactions.** Transactions page serves this purpose.
+> - **API client additions:** `getDashboardSummary(startDate, endDate)`, `getAvailableMonths()`.
 
 ---
 
@@ -173,6 +65,32 @@ Ensure all pages work at common screen widths. Sidebar collapses on smaller scre
 - [ ] Complete
 
 ## Done
+
+## Epic: Accounts & SimpleFIN Integration ✅
+Status: Complete
+
+### Story: TransactionProvider interface and MockProvider 
+- [x] Complete ✅
+
+### Story: Account CRUD API ✅
+- [x] Complete
+
+### Story: Sync endpoint and pipeline ✅
+- [x] Complete
+
+### Story: SimpleFIN provider implementation ✅
+- [x] Complete
+
+### Story: Sidebar Navigation ✅
+- [x] Complete
+
+### Story: Accounts UI ✅
+- [x] Complete
+
+### Story: Transactions Empty State ✅
+- [x] Complete
+
+---
 
 ## Epic: Tech Debt 
 Status: Complete ✅
