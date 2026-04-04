@@ -23,7 +23,8 @@ app:
     stale-threshold-hours: 1     # Sync on login if older than 1 hour
 
   security:
-    require-https: false
+    require-https: true
+    validate-secrets: true
 
   providers:
     mock-enabled: false

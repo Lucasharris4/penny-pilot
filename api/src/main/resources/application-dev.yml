@@ -1,3 +1,7 @@
 app:
   providers:
     mock-enabled: true
+
+  security:
+    require-https: false
+    validate-secrets: false

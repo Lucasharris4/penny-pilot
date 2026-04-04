@@ -5,14 +5,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@Profile("prod")
+@ConditionalOnProperty(name = "app.security.validate-secrets", havingValue = "true", matchIfMissing = true)
 public class ProductionSecurityValidator implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ProductionSecurityValidator.class);
