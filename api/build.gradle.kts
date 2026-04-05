@@ -30,6 +30,9 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.49.1.0")
     implementation("org.hibernate.orm:hibernate-community-dialects:6.6.13.Final")
 
+    // Flyway (database migrations)
+    implementation("org.flywaydb:flyway-core")
+
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
