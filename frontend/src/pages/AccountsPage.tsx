@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatCents(cents: number): string {
   const dollars = Math.abs(cents) / 100;
@@ -177,13 +178,37 @@ export default function AccountsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
+        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-destructive hover:opacity-70 ml-3 shrink-0">&times;</button>
         </div>
       )}
 
       {loading ? (
-        <p className="text-muted-foreground">Loading accounts...</p>
+        <div className="space-y-4">
+          {[0, 1].map(i => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-28" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : accounts.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">

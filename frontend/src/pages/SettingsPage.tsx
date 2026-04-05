@@ -3,6 +3,7 @@ import { settingsApi, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PasswordStrengthBar from '@/components/PasswordStrengthBar';
 
 export default function SettingsPage() {
   return (
@@ -80,6 +81,7 @@ function ChangePasswordSection() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
+          <PasswordStrengthBar password={newPassword} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm New Password</Label>

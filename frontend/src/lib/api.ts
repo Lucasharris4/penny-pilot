@@ -25,6 +25,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+      throw new ApiError(401, 'Session expired');
+    }
     const body = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new ApiError(response.status, body.message || 'Request failed');
   }
