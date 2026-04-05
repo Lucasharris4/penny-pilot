@@ -113,7 +113,7 @@ export default function DashboardPage() {
 
       {loading ? (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             {[0, 1, 2].map(i => (
               <Card key={i}>
                 <CardHeader className="pb-2"><Skeleton className="h-4 w-20" /></CardHeader>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
       ) : summary && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Income</CardTitle>
@@ -169,8 +169,8 @@ export default function DashboardPage() {
                 <CardTitle>Spending by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-8">
-                  <div className="w-72 h-72">
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="w-72 h-72 shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
