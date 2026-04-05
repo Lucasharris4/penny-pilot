@@ -86,6 +86,15 @@ cd frontend && npm test
 - Descriptive commit messages
 - Push to feature branch, never directly to `main`
 
+## Database Migrations (Flyway)
+
+- Schema changes require a new Flyway migration in `api/src/main/resources/db/migration/`
+- Naming: `V{N}__{description}.sql` (e.g., `V2__add_budgets_table.sql`)
+- **Never modify an existing migration file** — always create a new one
+- Hibernate `ddl-auto` is set to `none` — Flyway owns all schema changes (SQLite's type system is incompatible with Hibernate's `validate` mode)
+- Tests use `create-drop` with Flyway disabled — no migrations needed for tests
+- The SIMPLEFIN provider is seeded in V1. The MOCK provider is seeded at startup only under the `dev` profile.
+
 ## Conventions
 
 - Use existing patterns and utilities — don't create new abstractions for one-time operations
