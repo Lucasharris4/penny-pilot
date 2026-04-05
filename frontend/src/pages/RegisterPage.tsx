@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import PasswordStrengthBar from '@/components/PasswordStrengthBar';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -78,6 +79,7 @@ export default function RegisterPage() {
                 required
                 minLength={8}
               />
+              <PasswordStrengthBar password={password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>

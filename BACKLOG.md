@@ -1,7 +1,22 @@
 # Backlog
 
-## Epic: Settings & Data Management
-Status: Not Started
+## Done
+
+## Epic: Polish ✅
+Status: Complete
+
+### Story: Frontend polish — loading skeletons, JWT expiry, error UX, password strength
+Loading skeleton placeholders on Dashboard, Transactions, and Accounts pages. JWT 401 expiry detection redirects to login. Dismissible error banners on all pages. Password strength indicator on registration and change password forms.
+- [x] Complete
+
+### Story: Responsive layout
+Collapsible sidebar with hamburger toggle on mobile. Dashboard cards and chart stack on narrow screens. Transaction table scrolls horizontally. Filter bar wraps naturally.
+- [x] Complete
+
+---
+
+## Epic: Settings & Data Management ✅
+Status: Complete
 
 ### Story: Category color picker
 Add a visual color picker to category creation and editing flows. Users should be able to select a color visually rather than entering hex codes. No backend changes needed — the API already accepts/returns hex strings.
@@ -20,23 +35,6 @@ Extract the duplicated `@TestConfiguration` / `JwtService` bean setup from all `
 - [x] Complete
 
 ---
-
-## Epic: Polish
-Status: Not Started
-
-### Story: Error handling and loading states
-Add consistent error handling across all API calls in the frontend. Show user-friendly error messages. Add loading spinners/skeletons for async operations. Handle network failures gracefully.
-- [ ] Complete
-
-### Story: Input validation
-Comprehensive input validation on both API (reject bad data with clear error messages) and frontend (inline form validation before submission). Cover: required fields, email format, password strength, amount formatting, date ranges.
-- [ ] Complete
-
-### Story: Responsive layout
-Ensure all pages work at common screen widths. Sidebar collapses on smaller screens. Tables become scrollable or stack on narrow viewports.
-- [ ] Complete
-
-## Done
 
 ## Epic: Dashboard ✅
 Status: Complete

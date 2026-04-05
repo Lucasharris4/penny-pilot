@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatCents(cents: number): string {
   const dollars = Math.abs(cents) / 100;
@@ -104,17 +105,31 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-          {error}
+        <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-destructive hover:opacity-70 ml-3 shrink-0">&times;</button>
         </div>
       )}
 
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {[0, 1, 2].map(i => (
+              <Card key={i}>
+                <CardHeader className="pb-2"><Skeleton className="h-4 w-20" /></CardHeader>
+                <CardContent><Skeleton className="h-8 w-28" /></CardContent>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
+            <CardContent><Skeleton className="h-72 w-full" /></CardContent>
+          </Card>
+        </>
       ) : summary && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Income</CardTitle>
@@ -154,8 +169,8 @@ export default function DashboardPage() {
                 <CardTitle>Spending by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-8">
-                  <div className="w-72 h-72">
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="w-72 h-72 shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
