@@ -70,4 +70,4 @@ CREATE TABLE IF NOT EXISTS user_provider_credentials (
 
 -- Seed the SimpleFIN provider (production provider).
 -- MOCK provider is seeded at application startup only when the dev profile is active.
-INSERT INTO providers (name, description) VALUES ('SIMPLEFIN', 'SimpleFIN Bridge');
+INSERT OR IGNORE INTO providers (name, description) VALUES ('SIMPLEFIN', 'SimpleFIN Bridge');
