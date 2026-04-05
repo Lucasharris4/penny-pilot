@@ -5,9 +5,11 @@ import com.pennypilot.api.entity.ProviderType;
 import com.pennypilot.api.repository.ProviderRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("dev")
 public class ProviderSeeder implements ApplicationRunner {
 
     private final ProviderRepository providerRepository;
@@ -18,15 +20,10 @@ public class ProviderSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        seedIfMissing(ProviderType.MOCK, "Sandbox provider with sample data");
-        seedIfMissing(ProviderType.SIMPLEFIN, "SimpleFIN Bridge");
-    }
-
-    private void seedIfMissing(ProviderType name, String description) {
-        if (providerRepository.findByName(name).isEmpty()) {
+        if (providerRepository.findByName(ProviderType.MOCK).isEmpty()) {
             Provider provider = new Provider();
-            provider.setName(name);
-            provider.setDescription(description);
+            provider.setName(ProviderType.MOCK);
+            provider.setDescription("Sandbox provider with sample data");
             providerRepository.save(provider);
         }
     }

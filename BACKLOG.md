@@ -1,5 +1,30 @@
 # Backlog
 
+## Epic: Publish to Homelab
+Status: ⬜ Not Started
+
+### Story: Flyway migration setup
+Convert existing schema from Hibernate auto-DDL to versioned Flyway migrations. Baseline the current schema as V1. Disable `ddl-auto` in production. Ensure fresh installs and existing databases both work correctly after the switch.
+- [ ] Complete
+
+### Story: GitHub Actions CI/CD
+Create a GitHub Actions workflow that builds multi-arch Docker images (amd64 + arm64) and pushes to Docker Hub on tagged releases. Publish a minimal `docker-compose.yml` that pulls from Docker Hub instead of building from source. Include semantic versioning on image tags plus a `latest` tag.
+- [ ] Complete
+
+### Story: Run app in homelab environment
+Deploy the published Docker image to the homelab. AC: app is running, registration works, login works, pages load correctly.
+- [ ] Complete
+
+### Story: SimpleFIN live walkthrough and in-app setup guide
+Walk through SimpleFIN registration and bank linking live on the homelab deployment. Document friction points. Build an in-app guided setup flow on the Accounts page that walks non-technical users through the SimpleFIN setup step-by-step.
+- [ ] Complete
+
+### Story: README.md
+Comprehensive open-source README: project description, features, quick start (docker-compose pull + run), configuration (env vars), development setup for contributors, contributing guidelines (branch/PR process, issue templates), architecture overview, and "buy me a coffee" link.
+- [ ] Complete
+
+---
+
 ## Done
 
 ## Epic: Polish ✅
@@ -277,3 +302,4 @@ These are tracked here for future planning but will not be groomed or worked unt
 - Break scheduled sync (nightly job) into its own container/service — shares DB and sync logic but scales independently, no impact on user-facing API performance. Worker pattern for multi-user scale.
 - Dark mode (light/dark theme toggle using Tailwind's dark variant, persist in localStorage)
 - CSV/PDF export (server-side transaction export — browser Print works for quick snapshots)
+- E2E test personas (5-20 mock users with sample data for release validation). Establish a dev-only Flyway migration location (`db/migration/dev/`) that runs only under the `dev` profile. Seed MOCK provider, test users, sample accounts/transactions here. This pattern also replaces the `@PostConstruct` MOCK provider seeding with a declarative, versioned approach.
