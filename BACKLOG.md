@@ -1,31 +1,81 @@
 # Backlog
 
-## Epic: Publish to Homelab
-Status: ⬜ Not Started
+## Epic: Open Source Release
+Status: 🔄 In progress
 
-### Story: Flyway migration setup
-Convert existing schema from Hibernate auto-DDL to versioned Flyway migrations. Baseline the current schema as V1. Disable `ddl-auto` in production. Ensure fresh installs and existing databases both work correctly after the switch.
+### Story: SimpleFIN setup guide — Part 2
+Finish the in-app half of the SimpleFIN setup walkthrough in `docs/simplefin-setup.md`. Part 1 (Steps 1–3: create a SimpleFIN Bridge account, authorize banks, generate a setup token) shipped with screenshots. Part 2 needs Step 4 (link accounts in Penny Pilot), Step 5 (initial sync and verification), a populated Troubleshooting section (including the "We are upgrading this connection" resolution time once the homelab bank connection finishes reconciling), and a Re-linking / rotating credentials section. **Blocked by the SimpleFIN 502 defect below** — linking flow has to work end-to-end before we can screenshot and document it.
 - [ ] Complete
 
-### Story: GitHub Actions CI/CD
-Create a GitHub Actions workflow that builds multi-arch Docker images (amd64 + arm64) and pushes to Docker Hub on tagged releases. Publish a minimal `docker-compose.yml` that pulls from Docker Hub instead of building from source. Include semantic versioning on image tags plus a `latest` tag.
-- [ ] Complete
-
-### Story: Run app in homelab environment
-Deploy the published Docker image to the homelab. AC: app is running, registration works, login works, pages load correctly.
-- [ ] Complete
-
-### Story: SimpleFIN live walkthrough and in-app setup guide
-Walk through SimpleFIN registration and bank linking live on the homelab deployment. Document friction points. Build an in-app guided setup flow on the Accounts page that walks non-technical users through the SimpleFIN setup step-by-step.
+### Story: In-app guided SimpleFIN setup flow
+Build an in-app guided setup flow on the Accounts page that walks non-technical users through the SimpleFIN setup step-by-step (complements the docs, doesn't replace them). Originally scoped alongside the walkthrough docs; split out so the docs can ship independently.
 - [ ] Complete
 
 ### Story: README.md
 Comprehensive open-source README: project description, features, quick start (docker-compose pull + run), configuration (env vars), development setup for contributors, contributing guidelines (branch/PR process, issue templates), architecture overview, and "buy me a coffee" link.
 - [ ] Complete
 
+### Defect: SimpleFIN account linking fails with 502 "Failed to parse SimpleFIN accounts response"
+`POST /api/accounts/link` returns 502 when a real setup token is submitted on the homelab deployment. Root cause: SimpleFIN moved the Bridge to `beta-bridge.simplefin.org`, and the old `https://bridge.simplefin.org/simplefin/claim` endpoint now responds with a 302 to `https://beta-bridge.simplefin.org/`. Spring's `RestClient` does not follow POST redirects by default, so the claim call silently stores a garbage body as the "access URL" and the subsequent `fetchAccounts` call fails to parse a non-JSON response. Fix involves: (1) updating `CLAIM_URL` to the new host after verifying the canonical claim path, (2) configuring `RestClient` with `HttpClient.Redirect.NORMAL` so future endpoint moves don't silently break, and (3) adding logging to `AccountController.handleProviderConnection` and `handleProviderAuth` — handled exceptions are currently never logged, which forced manual `curl` debugging to find the 302. Also add a `MockWebServer`-based regression test that simulates a 302 on claim.
+- [ ] Complete
+
+### Story: Fix intermittent Docker Hub pulls on homelab (IPv6)
+`docker compose pull` against Docker Hub fails non-deterministically on the homelab NAS with `dial tcp [2600:1f18:...]:443: connect: network is unreachable`. Root cause: the NAS has IPv6 addresses assigned to its interfaces but no working IPv6 route to the internet, so when Docker's Go resolver happens to pick an AAAA record first, the connection fails immediately. Retrying eventually lands on an IPv4 address and succeeds. Proper fix needs investigation and a decision between: (a) disabling IPv6 at the host via sysctl (`net.ipv6.conf.all.disable_ipv6=1`) — clean one-time change, reflects reality that IPv6 isn't working; (b) fixing IPv6 properly at the router/ISP level if upstream actually supports it; or (c) forcing Docker daemon to prefer IPv4 via `GODEBUG=netdns=cgo` or similar. Goal of this story is to understand what's going on, pick an option, and apply it so pulls are deterministic.
+- [ ] Complete
+
 ---
 
 ## Done
+
+## Epic: Publish to Homelab ✅
+Status: Complete
+
+### Story: Flyway migration setup
+Convert existing schema from Hibernate auto-DDL to versioned Flyway migrations. Baseline the current schema as V1. Disable `ddl-auto` in production. Ensure fresh installs and existing databases both work correctly after the switch.
+- [x] Complete
+
+> **Dev notes:**
+> - Flyway V1 baseline in `api/src/main/resources/db/migration/V1__baseline.sql` — creates all 7 tables + seeds SIMPLEFIN provider.
+> - `ddl-auto` set to `none` (not `validate`) because SQLite's type system (`INTEGER` for PKs) doesn't match what Hibernate expects (`BIGINT`). Flyway owns all schema changes.
+> - `baseline-on-migrate: true` with `baseline-version: 0` handles pre-Flyway databases — Flyway baselines at version 0, then applies V1.
+> - V1 uses `INSERT OR IGNORE` for provider seeding — required because existing databases already have the row, and a plain `INSERT` hits a UNIQUE constraint.
+> - MOCK provider seeded via `ProviderSeeder` (`@Profile("dev")` only), not via Flyway.
+> - Flyway disabled in test profile — tests use `create-drop` with in-memory SQLite.
+
+### Story: GitHub Actions CI/CD
+Create a GitHub Actions workflow that builds multi-arch Docker images (amd64 + arm64) and pushes to Docker Hub on tagged releases. Publish a minimal `docker-compose.yml` that pulls from Docker Hub instead of building from source. Include semantic versioning on image tags plus a `latest` tag.
+- [x] Complete
+
+> **Dev notes:**
+> - Workflow at `.github/workflows/release.yml` — triggers on `v*` tags.
+> - Runs full test suite (API + frontend) before building images.
+> - Uses `docker/build-push-action` with `docker/setup-qemu-action` for multi-arch (amd64 + arm64).
+> - Images: `lharris4/penny-pilot-api` and `lharris4/penny-pilot-frontend` on Docker Hub.
+> - Each tag produces versioned + `latest` tags (e.g., `1.0.0` + `latest`).
+> - Requires `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` as GitHub repo secrets.
+> - `docker-compose.prod.yml` pulls pre-built images, uses `prod` profile, requires `.env` with `JWT_SECRET` and `CREDENTIAL_ENCRYPTION_KEY`.
+> - Release flow: `git tag v1.0.1 && git push --tags` — Actions handles the rest.
+
+### Story: Run app in homelab environment
+Deploy the published Docker image to the homelab. AC: app is running, registration works, login works, pages load correctly.
+- [x] Complete
+
+> **Dev notes:**
+> - Deployed to `nas-prime-933` (Ubuntu) at `/mnt/raid1/docker/compose-files/penny-pilot/`.
+> - Behind Caddy reverse proxy with `tls internal` at `https://pennypilot.local:8448`.
+> - Caddy container joins `penny-pilot_penny-pilot-network` (external network) to reach the frontend container by name.
+> - Port 8448 added to Caddy's ports and allowed in UFW (`192.168.50.0/24`).
+> - DNS resolved via Pi-hole local DNS record: `pennypilot.local → server IP`.
+> - **Gotcha: X-Forwarded-Proto.** Nginx in the frontend container was overwriting the header with `$scheme` (http) instead of passing through Caddy's header (`https`). Fixed by changing to `$http_x_forwarded_proto`. This was a v1.0.1 hotfix.
+> - **Gotcha: Docker bypasses UFW.** Docker manipulates iptables directly, so published ports are accessible regardless of UFW rules. Not a security issue on LAN, but worth knowing.
+
+**Update commands:**
+```
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
 
 ## Epic: Polish ✅
 Status: Complete
@@ -286,6 +336,8 @@ Frontend pages for login and registration. After successful login, store JWT and
 
 These are tracked here for future planning but will not be groomed or worked until the MVP is complete.
 
+- Forgot password
+- Logo
 - Budgets (monthly limits per category, progress bars, copy month-to-month)
 - Recurring transaction auto-generation (monthly bills/income)
 - Savings goals with progress tracking
@@ -303,3 +355,4 @@ These are tracked here for future planning but will not be groomed or worked unt
 - Dark mode (light/dark theme toggle using Tailwind's dark variant, persist in localStorage)
 - CSV/PDF export (server-side transaction export — browser Print works for quick snapshots)
 - E2E test personas (5-20 mock users with sample data for release validation). Establish a dev-only Flyway migration location (`db/migration/dev/`) that runs only under the `dev` profile. Seed MOCK provider, test users, sample accounts/transactions here. This pattern also replaces the `@PostConstruct` MOCK provider seeding with a declarative, versioned approach.
+
