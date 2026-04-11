@@ -8,22 +8,23 @@ import com.pennypilot.api.provider.credentials.SimpleFINCredentials;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class SimpleFINProvider implements TransactionProvider {
-
-    private static final String CLAIM_URL = "https://bridge.simplefin.org/simplefin/claim";
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -48,10 +49,16 @@ public class SimpleFINProvider implements TransactionProvider {
     }
 
     public String claimSetupToken(String setupToken) {
+        String claimUrl;
+        try {
+            claimUrl = new String(Base64.getDecoder().decode(setupToken), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            throw new ProviderAuthException("Invalid SimpleFIN setup token");
+        }
+
         try {
             String accessUrl = restClient.post()
-                    .uri(CLAIM_URL)
-                    .body(setupToken)
+                    .uri(claimUrl)
                     .retrieve()
                     .body(String.class);
 
@@ -60,6 +67,8 @@ public class SimpleFINProvider implements TransactionProvider {
             }
 
             return accessUrl.trim();
+        } catch (HttpClientErrorException.Forbidden e) {
+            throw new ProviderAuthException("SimpleFIN setup token is invalid or already used");
         } catch (RestClientException e) {
             throw new ProviderConnectionException("Failed to claim SimpleFIN setup token", e);
         }
