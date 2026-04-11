@@ -17,7 +17,7 @@ Comprehensive open-source README: project description, features, quick start (do
 
 ### Defect: SimpleFIN account linking fails with 502 "Failed to parse SimpleFIN accounts response"
 `POST /api/accounts/link` returns 502 when a real setup token is submitted on the homelab deployment. Surface symptom was SimpleFIN moving the Bridge from `bridge.simplefin.org` to `beta-bridge.simplefin.org`, but grooming revealed the real underlying issue: `SimpleFINProvider.claimSetupToken` was never implementing the SimpleFIN protocol correctly. The "just update the hardcoded URL" fix originally scoped here would have shipped a still-broken implementation.
-- [ ] Complete
+- [x] Complete ✅
 
 > **Dev notes** — grooming discovery:
 > - Per the SimpleFIN spec (`simplefin.org/protocol.html`), a **setup token is a base64-encoded claim URL**. The client decodes the token, POSTs to the decoded URL with an empty body, and receives a plain-text access URL in response.

@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,8 @@ import java.util.List;
 @RequestMapping("/api/accounts")
 @Tag(name = "Accounts", description = "Account management endpoints")
 public class AccountController {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountController.class);
 
     private final AccountService accountService;
     private final SyncService syncService;
@@ -110,12 +114,14 @@ public class AccountController {
 
     @ExceptionHandler(SimpleFINProvider.ProviderAuthException.class)
     public ResponseEntity<ErrorResponse> handleProviderAuth(SimpleFINProvider.ProviderAuthException ex) {
+        log.error("SimpleFIN provider auth error", ex);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(SimpleFINProvider.ProviderConnectionException.class)
     public ResponseEntity<ErrorResponse> handleProviderConnection(SimpleFINProvider.ProviderConnectionException ex) {
+        log.error("SimpleFIN provider connection error", ex);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }
