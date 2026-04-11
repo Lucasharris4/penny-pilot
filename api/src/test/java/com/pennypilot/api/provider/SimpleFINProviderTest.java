@@ -6,11 +6,15 @@ import com.pennypilot.api.entity.TransactionType;
 import com.pennypilot.api.provider.credentials.SimpleFINCredentials;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
@@ -96,24 +100,46 @@ class SimpleFINProviderTest {
 
     // --- claimSetupToken ---
 
+    private static final String CLAIM_URL = "https://beta-bridge.simplefin.org/simplefin/claim/abc123";
+    private static final String SETUP_TOKEN = Base64.getEncoder()
+            .encodeToString(CLAIM_URL.getBytes(StandardCharsets.UTF_8));
+
     @Test
-    void claimSetupToken_success() {
-        mockServer.expect(requestTo("https://bridge.simplefin.org/simplefin/claim"))
-                .andRespond(withSuccess("https://user:pass@bridge.simplefin.org/simplefin", MediaType.TEXT_PLAIN));
+    void claimSetupToken_decodesTokenAndPostsToDecodedUrl() {
+        mockServer.expect(requestTo(CLAIM_URL))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(
+                        "https://user:pass@beta-bridge.simplefin.org/simplefin",
+                        MediaType.TEXT_PLAIN));
 
-        String accessUrl = provider.claimSetupToken("my-setup-token");
+        String accessUrl = provider.claimSetupToken(SETUP_TOKEN);
 
-        assertEquals("https://user:pass@bridge.simplefin.org/simplefin", accessUrl);
+        assertEquals("https://user:pass@beta-bridge.simplefin.org/simplefin", accessUrl);
         mockServer.verify();
     }
 
     @Test
+    void claimSetupToken_malformedToken_throwsAuthException() {
+        assertThrows(SimpleFINProvider.ProviderAuthException.class,
+                () -> provider.claimSetupToken("!!!not-base64!!!"));
+    }
+
+    @Test
+    void claimSetupToken_alreadyUsed_throwsAuthException() {
+        mockServer.expect(requestTo(CLAIM_URL))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+        assertThrows(SimpleFINProvider.ProviderAuthException.class,
+                () -> provider.claimSetupToken(SETUP_TOKEN));
+    }
+
+    @Test
     void claimSetupToken_connectionFailure_throws() {
-        mockServer.expect(requestTo("https://bridge.simplefin.org/simplefin/claim"))
+        mockServer.expect(requestTo(CLAIM_URL))
                 .andRespond(withServerError());
 
         assertThrows(SimpleFINProvider.ProviderConnectionException.class,
-                () -> provider.claimSetupToken("bad-token"));
+                () -> provider.claimSetupToken(SETUP_TOKEN));
     }
 
     // --- fetchAccounts ---
