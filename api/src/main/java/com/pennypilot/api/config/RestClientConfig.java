@@ -22,4 +22,9 @@ public class RestClientConfig {
                 .build();
         return builder -> builder.requestFactory(new JdkClientHttpRequestFactory(httpClient));
     }
+
+    @Bean
+    public RestClientCustomizer restClientBasicAuthCustomizer() {
+        return builder -> builder.requestInterceptor(new UserInfoBasicAuthInterceptor());
+    }
 }
