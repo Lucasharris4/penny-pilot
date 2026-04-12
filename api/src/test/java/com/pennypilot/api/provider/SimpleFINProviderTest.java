@@ -1,11 +1,13 @@
 package com.pennypilot.api.provider;
 
+import com.pennypilot.api.config.UserInfoBasicAuthInterceptor;
 import com.pennypilot.api.dto.provider.ProviderAccount;
 import com.pennypilot.api.dto.provider.ProviderTransaction;
 import com.pennypilot.api.entity.TransactionType;
 import com.pennypilot.api.provider.credentials.SimpleFINCredentials;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +31,9 @@ class SimpleFINProviderTest {
     private MockRestServiceServer mockServer;
 
     private static final String ACCESS_URL = "https://user:pass@bridge.simplefin.org/simplefin";
+    private static final String CLEAN_BASE = "https://bridge.simplefin.org/simplefin";
+    // base64("user:pass") = dXNlcjpwYXNz
+    private static final String EXPECTED_AUTH = "Basic dXNlcjpwYXNz";
     private static final SimpleFINCredentials CREDENTIALS = new SimpleFINCredentials(ACCESS_URL);
 
     private static final String ACCOUNTS_RESPONSE = """
@@ -93,7 +98,8 @@ class SimpleFINProviderTest {
 
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder();
+        RestClient.Builder builder = RestClient.builder()
+                .requestInterceptor(new UserInfoBasicAuthInterceptor());
         mockServer = MockRestServiceServer.bindTo(builder).build();
         provider = new SimpleFINProvider(builder, mock(CredentialResolver.class));
     }
@@ -146,7 +152,8 @@ class SimpleFINProviderTest {
 
     @Test
     void fetchAccounts_mapsCorrectly() {
-        mockServer.expect(requestTo(ACCESS_URL + "/accounts"))
+        mockServer.expect(requestTo(CLEAN_BASE + "/accounts"))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, EXPECTED_AUTH))
                 .andRespond(withSuccess(ACCOUNTS_RESPONSE, MediaType.APPLICATION_JSON));
 
         List<ProviderAccount> accounts = provider.fetchAccounts(CREDENTIALS);
@@ -170,8 +177,9 @@ class SimpleFINProviderTest {
     @Test
     void fetchTransactions_mapsAmountsAndTypes() {
         mockServer.expect(requestToUriTemplate(
-                        ACCESS_URL + "/accounts?account={account}&start-date={start}",
+                        CLEAN_BASE + "/accounts?account={account}&start-date={start}",
                         "acct-123", "1738281600"))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, EXPECTED_AUTH))
                 .andRespond(withSuccess(TRANSACTIONS_RESPONSE, MediaType.APPLICATION_JSON));
 
         List<ProviderTransaction> txns = provider.fetchTransactions(

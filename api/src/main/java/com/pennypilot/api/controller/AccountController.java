@@ -114,14 +114,17 @@ public class AccountController {
 
     @ExceptionHandler(SimpleFINProvider.ProviderAuthException.class)
     public ResponseEntity<ErrorResponse> handleProviderAuth(SimpleFINProvider.ProviderAuthException ex) {
-        log.error("SimpleFIN provider auth error", ex);
+        // Log only our own message, never the cause chain — a wrapped Spring
+        // HTTP exception may render the SimpleFIN access URI verbatim, which
+        // carries the user's bank credentials in userinfo.
+        log.error("SimpleFIN provider auth error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(SimpleFINProvider.ProviderConnectionException.class)
     public ResponseEntity<ErrorResponse> handleProviderConnection(SimpleFINProvider.ProviderConnectionException ex) {
-        log.error("SimpleFIN provider connection error", ex);
+        log.error("SimpleFIN provider connection error: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse(ex.getMessage()));
     }

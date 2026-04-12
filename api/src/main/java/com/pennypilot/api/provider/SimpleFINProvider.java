@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -70,7 +71,8 @@ public class SimpleFINProvider implements TransactionProvider {
         } catch (HttpClientErrorException.Forbidden e) {
             throw new ProviderAuthException("SimpleFIN setup token is invalid or already used");
         } catch (RestClientException e) {
-            throw new ProviderConnectionException("Failed to claim SimpleFIN setup token", e);
+            throw new ProviderConnectionException(
+                    "Failed to claim SimpleFIN setup token (" + httpErrorDescription(e) + ")");
         }
     }
 
@@ -92,7 +94,8 @@ public class SimpleFINProvider implements TransactionProvider {
             }
             return accounts;
         } catch (RestClientException e) {
-            throw new ProviderConnectionException("Failed to fetch SimpleFIN accounts", e);
+            throw new ProviderConnectionException(
+                    "Failed to fetch SimpleFIN accounts (" + httpErrorDescription(e) + ")");
         } catch (Exception e) {
             throw new ProviderConnectionException("Failed to parse SimpleFIN accounts response", e);
         }
@@ -126,7 +129,8 @@ public class SimpleFINProvider implements TransactionProvider {
             }
             return transactions;
         } catch (RestClientException e) {
-            throw new ProviderConnectionException("Failed to fetch SimpleFIN transactions", e);
+            throw new ProviderConnectionException(
+                    "Failed to fetch SimpleFIN transactions (" + httpErrorDescription(e) + ")");
         } catch (Exception e) {
             throw new ProviderConnectionException("Failed to parse SimpleFIN transactions response", e);
         }
@@ -180,6 +184,17 @@ public class SimpleFINProvider implements TransactionProvider {
                 .intValue();
     }
 
+    // Spring's ResourceAccessException renders the failing URI verbatim in its
+    // message — and the SimpleFIN access URI has the user's bank password in
+    // its userinfo. We deliberately throw away the exception message and only
+    // surface status code / error class, so nothing leaks into the controller log.
+    private static String httpErrorDescription(RestClientException e) {
+        if (e instanceof HttpStatusCodeException httpEx) {
+            return "HTTP " + httpEx.getStatusCode().value();
+        }
+        return "connection error";
+    }
+
     private String extractAccessUrl(ProviderCredentials credentials) {
         if (!(credentials instanceof SimpleFINCredentials simpleFIN)) {
             throw new ProviderAuthException("SimpleFIN requires SimpleFINCredentials");
@@ -200,6 +215,10 @@ public class SimpleFINProvider implements TransactionProvider {
     }
 
     public static class ProviderConnectionException extends RuntimeException {
+        public ProviderConnectionException(String message) {
+            super(message);
+        }
+
         public ProviderConnectionException(String message, Throwable cause) {
             super(message, cause);
         }
