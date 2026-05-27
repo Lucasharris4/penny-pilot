@@ -2,6 +2,8 @@ package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.transaction.*;
 import com.pennypilot.api.entity.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.pennypilot.api.repository.CategoryRepository;
 import com.pennypilot.api.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
+
+    private static final Logger log = LoggerFactory.getLogger(TransactionService.class);
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
@@ -76,6 +80,26 @@ public class TransactionService {
         return new BulkCategorizeResponse(transactions.size());
     }
 
+    @Transactional
+    public int bulkIgnore(Long userId, BulkIgnoreRequest request) {
+        List<Transaction> transactions = transactionRepository.findAllByIdInAndUserId(request.ids(), userId);
+
+        List<Long> foundIds = transactions.stream().map(Transaction::getId).toList();
+        List<Long> invalidIds = request.ids().stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!invalidIds.isEmpty()) {
+            log.warn("Bulk ignore failed for userId={} — invalid IDs: {}", userId, invalidIds);
+            throw new InvalidIgnoreIdsException(invalidIds);
+        }
+
+        transactions.forEach(txn -> txn.setIgnored(request.ignored()));
+        transactionRepository.saveAll(transactions);
+
+        return transactions.size();
+    }
+
     private Map<Long, String> loadCategoryNames(Long userId) {
         return categoryRepository.findByUserId(userId).stream()
                 .collect(Collectors.toMap(
@@ -106,6 +130,19 @@ public class TransactionService {
         private final List<Long> invalidIds;
 
         public InvalidTransactionIdsException(List<Long> invalidIds) {
+            super("Invalid transaction IDs: " + invalidIds);
+            this.invalidIds = invalidIds;
+        }
+
+        public List<Long> getInvalidIds() {
+            return invalidIds;
+        }
+    }
+
+    public static class InvalidIgnoreIdsException extends RuntimeException {
+        private final List<Long> invalidIds;
+
+        public InvalidIgnoreIdsException(List<Long> invalidIds) {
             super("Invalid transaction IDs: " + invalidIds);
             this.invalidIds = invalidIds;
         }

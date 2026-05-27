@@ -22,6 +22,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     @Query("SELECT t.transactionType, SUM(t.amountCents) FROM Transaction t " +
             "WHERE t.userId = :userId AND t.date >= :startDate AND t.date <= :endDate " +
+            "AND t.ignored = false " +
             "GROUP BY t.transactionType")
     List<Object[]> sumByTransactionType(@Param("userId") Long userId,
                                         @Param("startDate") String startDate,
@@ -29,7 +30,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     @Query("SELECT t.categoryId, SUM(t.amountCents) FROM Transaction t " +
             "WHERE t.userId = :userId AND t.date >= :startDate AND t.date <= :endDate " +
-            "AND t.transactionType = :type " +
+            "AND t.transactionType = :type AND t.ignored = false " +
             "GROUP BY t.categoryId")
     List<Object[]> sumByCategoryAndType(@Param("userId") Long userId,
                                         @Param("startDate") String startDate,

@@ -26,7 +26,10 @@ public record TransactionFilter(
         Integer maxAmount,
 
         @Schema(description = "Search description or merchant name")
-        String search
+        String search,
+
+        @Schema(description = "When false, excludes ignored transactions. Null or true includes them.")
+        Boolean showIgnored
 ) {
     public Specification<Transaction> toSpecification(Long userId) {
         return (root, query, cb) -> {
@@ -54,6 +57,9 @@ public record TransactionFilter(
                 Predicate descMatch = cb.like(cb.lower(root.get("description")), pattern);
                 Predicate merchantMatch = cb.like(cb.lower(root.get("merchantName")), pattern);
                 predicates.add(cb.or(descMatch, merchantMatch));
+            }
+            if (Boolean.FALSE.equals(showIgnored)) {
+                predicates.add(cb.equal(root.get("ignored"), false));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));
