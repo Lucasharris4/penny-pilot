@@ -5,6 +5,7 @@ import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.config.TestJwtConfig;
 import com.pennypilot.api.dto.transaction.*;
 import com.pennypilot.api.entity.TransactionType;
+import com.pennypilot.api.service.TransactionService;
 import com.pennypilot.api.service.JwtService;
 import com.pennypilot.api.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -56,7 +58,7 @@ class TransactionControllerTest {
     void listTransactions_returns200() throws Exception {
         TransactionResponse txn = new TransactionResponse(
                 1L, 1L, 5L, "Groceries", 4500, TransactionType.DEBIT,
-                "WHOLE FOODS #1234", "Whole Foods", "2026-03-15", null);
+                "WHOLE FOODS #1234", "Whole Foods", "2026-03-15", null, false);
 
         when(transactionService.listTransactions(eq(1L), any(TransactionFilter.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(txn), PageRequest.of(0, 20), 1));
@@ -84,7 +86,7 @@ class TransactionControllerTest {
     void updateTransaction_returns200() throws Exception {
         TransactionResponse updated = new TransactionResponse(
                 1L, 1L, 6L, "Dining", 5000, TransactionType.DEBIT,
-                "NEW DESC", "New Merchant", "2026-03-20", null);
+                "NEW DESC", "New Merchant", "2026-03-20", null, false);
 
         when(transactionService.updateTransaction(eq(1L), eq(1L), any(UpdateTransactionRequest.class)))
                 .thenReturn(updated);
@@ -169,6 +171,60 @@ class TransactionControllerTest {
                                 {"transactionIds": [], "categoryId": 5}
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    // --- bulk ignore ---
+
+    @Test
+    void bulkIgnore_returns200() throws Exception {
+        when(transactionService.bulkIgnore(eq(1L), any(BulkIgnoreRequest.class)))
+                .thenReturn(3);
+
+        mockMvc.perform(patch("/api/transactions/ignore")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ids": [1, 2, 3], "ignored": true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.updated").value(3));
+    }
+
+    @Test
+    void bulkIgnore_invalidIds_returns400WithGenericMessage() throws Exception {
+        when(transactionService.bulkIgnore(eq(1L), any(BulkIgnoreRequest.class)))
+                .thenThrow(new TransactionService.InvalidIgnoreIdsException(List.of(99L)));
+
+        mockMvc.perform(patch("/api/transactions/ignore")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ids": [1, 99], "ignored": true}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("One or more transaction IDs are invalid"))
+                .andExpect(jsonPath("$.invalidIds").doesNotExist());
+    }
+
+    @Test
+    void bulkIgnore_emptyIds_returns400() throws Exception {
+        mockMvc.perform(patch("/api/transactions/ignore")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ids": [], "ignored": true}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void bulkIgnore_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(patch("/api/transactions/ignore")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ids": [1], "ignored": true}
+                                """))
+                .andExpect(status().isUnauthorized());
     }
 
 }

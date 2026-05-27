@@ -2,6 +2,7 @@ package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.transaction.BulkCategorizeRequest;
 import com.pennypilot.api.dto.transaction.BulkCategorizeResponse;
+import com.pennypilot.api.dto.transaction.BulkIgnoreRequest;
 import com.pennypilot.api.dto.transaction.TransactionFilter;
 import com.pennypilot.api.dto.transaction.TransactionResponse;
 import com.pennypilot.api.dto.transaction.UpdateTransactionRequest;
@@ -32,7 +33,7 @@ class TransactionServiceTest {
     private TransactionService transactionService;
 
     private static final Long USER_ID = 1L;
-    private static final TransactionFilter EMPTY_FILTER = new TransactionFilter(null, null, null, null, null, null);
+    private static final TransactionFilter EMPTY_FILTER = new TransactionFilter(null, null, null, null, null, null, null);
 
     @BeforeEach
     void setUp() {
@@ -198,6 +199,50 @@ class TransactionServiceTest {
 
         assertThrows(TransactionService.CategoryNotFoundException.class,
                 () -> transactionService.bulkCategorize(USER_ID, request));
+    }
+
+    // --- bulk ignore ---
+
+    @Test
+    void bulkIgnore_setsIgnoredTrue() {
+        Transaction t1 = makeTransaction(1L, USER_ID, 1L, null, 1000, TransactionType.DEBIT, "D1", "M1", "2026-03-15");
+        Transaction t2 = makeTransaction(2L, USER_ID, 1L, null, 2000, TransactionType.DEBIT, "D2", "M2", "2026-03-16");
+
+        when(transactionRepository.findAllByIdInAndUserId(List.of(1L, 2L), USER_ID)).thenReturn(List.of(t1, t2));
+
+        int updated = transactionService.bulkIgnore(USER_ID, new BulkIgnoreRequest(List.of(1L, 2L), true));
+
+        assertEquals(2, updated);
+        assertTrue(t1.isIgnored());
+        assertTrue(t2.isIgnored());
+        verify(transactionRepository).saveAll(List.of(t1, t2));
+    }
+
+    @Test
+    void bulkIgnore_setsIgnoredFalse_unignores() {
+        Transaction t1 = makeTransaction(1L, USER_ID, 1L, null, 1000, TransactionType.DEBIT, "D1", "M1", "2026-03-15");
+        t1.setIgnored(true);
+
+        when(transactionRepository.findAllByIdInAndUserId(List.of(1L), USER_ID)).thenReturn(List.of(t1));
+
+        int updated = transactionService.bulkIgnore(USER_ID, new BulkIgnoreRequest(List.of(1L), false));
+
+        assertEquals(1, updated);
+        assertFalse(t1.isIgnored());
+    }
+
+    @Test
+    void bulkIgnore_invalidIds_throwsException() {
+        Transaction t1 = makeTransaction(1L, USER_ID, 1L, null, 1000, TransactionType.DEBIT, "D1", "M1", "2026-03-15");
+
+        when(transactionRepository.findAllByIdInAndUserId(List.of(1L, 99L), USER_ID)).thenReturn(List.of(t1));
+
+        TransactionService.InvalidIgnoreIdsException ex = assertThrows(
+                TransactionService.InvalidIgnoreIdsException.class,
+                () -> transactionService.bulkIgnore(USER_ID, new BulkIgnoreRequest(List.of(1L, 99L), true)));
+
+        assertEquals(List.of(99L), ex.getInvalidIds());
+        verify(transactionRepository, never()).saveAll(any());
     }
 
     // --- helpers ---

@@ -34,7 +34,10 @@ public record TransactionResponse(
         String date,
 
         @Schema(description = "External ID from provider (for deduplication)")
-        String externalId
+        String externalId,
+
+        @Schema(description = "Whether this transaction is excluded from dashboard totals")
+        boolean ignored
 ) {
     public static TransactionResponse from(Transaction transaction, String categoryName) {
         return new TransactionResponse(
@@ -47,7 +50,8 @@ public record TransactionResponse(
                 transaction.getDescription(),
                 transaction.getMerchantName(),
                 transaction.getDate(),
-                transaction.getExternalId()
+                transaction.getExternalId(),
+                transaction.isIgnored()
         );
     }
 }

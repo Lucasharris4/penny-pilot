@@ -7,6 +7,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/transactions")
 @Tag(name = "Transactions", description = "Transaction management endpoints")
 public class TransactionController {
+
+    private static final Logger log = LoggerFactory.getLogger(TransactionController.class);
 
     private final TransactionService transactionService;
 
@@ -35,9 +39,10 @@ public class TransactionController {
             @RequestParam(required = false) Integer minAmount,
             @RequestParam(required = false) Integer maxAmount,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean showIgnored,
             @PageableDefault(size = 20, sort = "date") Pageable pageable) {
         Long userId = SecurityUtils.getCurrentUserId();
-        TransactionFilter filter = new TransactionFilter(startDate, endDate, categoryId, minAmount, maxAmount, search);
+        TransactionFilter filter = new TransactionFilter(startDate, endDate, categoryId, minAmount, maxAmount, search, showIgnored);
         Page<TransactionResponse> page = transactionService.listTransactions(userId, filter, pageable);
         return ResponseEntity.ok(page);
     }
@@ -53,6 +58,17 @@ public class TransactionController {
         Long userId = SecurityUtils.getCurrentUserId();
         TransactionResponse response = transactionService.updateTransaction(userId, id, request);
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/ignore")
+    @Operation(summary = "Set ignored status on multiple transactions")
+    @ApiResponse(responseCode = "200", description = "Transactions updated")
+    @ApiResponse(responseCode = "400", description = "Invalid transaction IDs")
+    public ResponseEntity<BulkIgnoreResponse> bulkIgnore(
+            @Valid @RequestBody BulkIgnoreRequest request) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        int updated = transactionService.bulkIgnore(userId, request);
+        return ResponseEntity.ok(new BulkIgnoreResponse(updated));
     }
 
     @PutMapping("/bulk-categorize")
@@ -83,6 +99,13 @@ public class TransactionController {
     public ResponseEntity<BulkCategorizeResponse> handleInvalidIds(TransactionService.InvalidTransactionIdsException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BulkCategorizeResponse(0, ex.getInvalidIds()));
+    }
+
+    @ExceptionHandler(TransactionService.InvalidIgnoreIdsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidIgnoreIds(TransactionService.InvalidIgnoreIdsException ex) {
+        log.warn("Bulk ignore request rejected — {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("One or more transaction IDs are invalid"));
     }
 
     record ErrorResponse(String message) {}

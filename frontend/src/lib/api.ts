@@ -62,6 +62,7 @@ export interface TransactionResponse {
   merchantName: string | null;
   date: string;
   externalId: string | null;
+  ignored: boolean;
 }
 
 export interface TransactionPage {
@@ -82,6 +83,7 @@ export interface TransactionFilters {
   page?: number;
   size?: number;
   sort?: string;
+  showIgnored?: boolean;
 }
 
 export interface UpdateTransactionRequest {
@@ -178,6 +180,7 @@ export const api = {
     if (filters.page != null) params.set('page', String(filters.page));
     if (filters.size != null) params.set('size', String(filters.size));
     if (filters.sort) params.set('sort', filters.sort);
+    if (filters.showIgnored === false) params.set('showIgnored', 'false');
     const query = params.toString();
     return request(`/transactions${query ? `?${query}` : ''}`);
   },
@@ -193,6 +196,13 @@ export const api = {
     return request('/transactions/bulk-categorize', {
       method: 'PUT',
       body: JSON.stringify({ transactionIds, categoryId }),
+    });
+  },
+
+  bulkIgnore(ids: number[], ignored: boolean): Promise<{ updated: number }> {
+    return request('/transactions/ignore', {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, ignored }),
     });
   },
 

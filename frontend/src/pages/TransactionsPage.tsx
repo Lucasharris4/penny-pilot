@@ -74,6 +74,9 @@ export default function TransactionsPage() {
   const [pendingCategoryTxnId, setPendingCategoryTxnId] = useState<number | null>(null);
   const [pendingBulk, setPendingBulk] = useState(false);
 
+  // Show/hide ignored transactions
+  const [showIgnored, setShowIgnored] = useState(true);
+
   // Bulk categorize dialog
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<string>('');
@@ -91,6 +94,7 @@ export default function TransactionsPage() {
       if (categoryFilter) filters.categoryId = Number(categoryFilter);
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
+      if (!showIgnored) filters.showIgnored = false;
 
       const result = await api.getTransactions(filters);
       setTransactions(result.content);
@@ -101,7 +105,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, categoryFilter, startDate, endDate, sortField, sortDir]);
+  }, [page, search, categoryFilter, startDate, endDate, sortField, sortDir, showIgnored]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -182,6 +186,17 @@ export default function TransactionsPage() {
       setError(err instanceof Error ? err.message : 'Failed to update category');
     }
     setEditingId(null);
+  };
+
+  const handleBulkIgnore = async (ignored: boolean) => {
+    if (selectedIds.size === 0) return;
+    try {
+      await api.bulkIgnore(Array.from(selectedIds), ignored);
+      setSelectedIds(new Set());
+      await fetchTransactions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update transactions');
+    }
   };
 
   const handleBulkCategorize = async () => {
@@ -308,6 +323,12 @@ export default function TransactionsPage() {
             />
           </div>
           <Button variant="outline" onClick={handleSearch}>Filter</Button>
+          <Button
+            variant={showIgnored ? 'outline' : 'secondary'}
+            onClick={() => { setShowIgnored(v => !v); setPage(0); }}
+          >
+            {showIgnored ? 'Hide Ignored' : 'Show Ignored'}
+          </Button>
         </div>
 
         {/* Bulk actions */}
@@ -319,6 +340,14 @@ export default function TransactionsPage() {
             <Button size="sm" onClick={() => setShowBulkDialog(true)}>
               Set Category
             </Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkIgnore(true)}>
+              Ignore
+            </Button>
+            {transactions.some(t => selectedIds.has(t.id) && t.ignored) && (
+              <Button size="sm" variant="outline" onClick={() => handleBulkIgnore(false)}>
+                Un-ignore
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
               Clear
             </Button>
@@ -416,7 +445,13 @@ export default function TransactionsPage() {
                 </TableHeader>
                 <TableBody>
                   {transactions.map(txn => (
-                    <TableRow key={txn.id} className={selectedIds.has(txn.id) ? 'bg-muted/50' : ''}>
+                    <TableRow
+                      key={txn.id}
+                      className={[
+                        selectedIds.has(txn.id) ? 'bg-muted/50' : '',
+                        txn.ignored ? 'opacity-40' : '',
+                      ].join(' ')}
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedIds.has(txn.id)}
@@ -459,9 +494,16 @@ export default function TransactionsPage() {
                         ${formatCents(txn.amountCents)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={txn.transactionType === 'CREDIT' ? 'default' : 'secondary'}>
-                          {txn.transactionType}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant={txn.transactionType === 'CREDIT' ? 'default' : 'secondary'}>
+                            {txn.transactionType}
+                          </Badge>
+                          {txn.ignored && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              ignored
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

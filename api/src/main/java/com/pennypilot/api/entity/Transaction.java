@@ -38,6 +38,9 @@ public class Transaction {
     @Column(name = "external_id")
     private String externalId;
 
+    @Column(nullable = false)
+    private boolean ignored;
+
     public Long getId() {
         return id;
     }
@@ -116,5 +119,13 @@ public class Transaction {
 
     public void setExternalId(String externalId) {
         this.externalId = externalId;
+    }
+
+    public boolean isIgnored() {
+        return ignored;
+    }
+
+    public void setIgnored(boolean ignored) {
+        this.ignored = ignored;
     }
 }
