@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 import { Label } from '@/components/ui/label';
 
 const PRESET_COLORS = [
@@ -16,7 +16,7 @@ interface ColorPickerProps {
 }
 
 export default function ColorPicker({ value, onChange, label = 'Color (optional)' }: ColorPickerProps) {
-  const [showHexInput, setShowHexInput] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="space-y-2">
@@ -36,23 +36,21 @@ export default function ColorPicker({ value, onChange, label = 'Color (optional)
         ))}
         <button
           type="button"
-          className={`w-7 h-7 rounded-full border-2 border-dashed flex items-center justify-center text-xs text-muted-foreground ${
-            showHexInput ? 'border-foreground' : 'border-muted-foreground hover:border-foreground'
-          }`}
-          onClick={() => setShowHexInput(!showHexInput)}
-          title="Enter custom hex code"
+          className="w-7 h-7 rounded-full border-2 border-dashed flex items-center justify-center text-xs text-muted-foreground border-muted-foreground hover:border-foreground"
+          onClick={() => colorInputRef.current?.click()}
+          title="Open color picker"
         >
           #
         </button>
-      </div>
-      {showHexInput && (
+        {/* Hidden — opened programmatically by the # button */}
         <input
+          ref={colorInputRef}
           type="color"
-          value={value || '#000000'}
-          onChange={e => onChange(e.target.value)}
-          className="h-8 w-16 cursor-pointer rounded border border-input bg-transparent p-0.5"
+          defaultValue={value || '#000000'}
+          onBlur={e => onChange(e.target.value)}
+          className="sr-only"
         />
-      )}
+      </div>
       {value && (
         <button
           type="button"
