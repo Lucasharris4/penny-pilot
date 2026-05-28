@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const PRESET_COLORS = [
@@ -47,17 +46,17 @@ export default function ColorPicker({ value, onChange, label = 'Color (optional)
         </button>
       </div>
       {showHexInput && (
-        <Input
-          value={value}
+        <input
+          type="color"
+          value={value || '#000000'}
           onChange={e => onChange(e.target.value)}
-          placeholder="#FF5722"
-          className="w-36"
+          className="h-8 w-16 cursor-pointer rounded border border-input bg-transparent p-0.5"
         />
       )}
       {value && (
         <button
           type="button"
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="ml-1 text-xs text-muted-foreground hover:text-foreground"
           onClick={() => onChange('')}
         >
           Clear selection
