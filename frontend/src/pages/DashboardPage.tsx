@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { DashboardSummaryResponse } from '@/lib/api';
+import type { DashboardSummaryResponse, CategoryResponse } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -9,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import ColorPicker from '@/components/ColorPicker';
 
 function formatCents(cents: number): string {
   const dollars = Math.abs(cents) / 100;
@@ -36,21 +38,26 @@ export default function DashboardPage() {
   const [months, setMonths] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [colorUpdateId, setColorUpdateId] = useState<number | null>(null);
 
   useEffect(() => {
-    api.getAvailableMonths().then(res => {
-      setMonths(res.months);
-      if (res.months.length > 0) {
-        setSelectedMonth(res.months[0]);
-      } else {
+    Promise.all([api.getAvailableMonths(), api.getCategories()])
+      .then(([monthsRes, catsRes]) => {
+        setCategories(catsRes);
+        setMonths(monthsRes.months);
+        if (monthsRes.months.length > 0) {
+          setSelectedMonth(monthsRes.months[0]);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        setError('Failed to load dashboard data');
         setLoading(false);
-      }
-    }).catch(() => {
-      setError('Failed to load available months');
-      setLoading(false);
-    });
+      });
   }, []);
 
   const fetchSummary = useCallback(async (month: string) => {
@@ -66,6 +73,21 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }, []);
+
+  const handleColorChange = useCallback(async (categoryId: number, newColor: string) => {
+    const cat = categories.find(c => c.id === categoryId);
+    if (!cat) return;
+    setColorUpdateId(categoryId);
+    try {
+      await api.updateCategory(categoryId, cat.name, cat.icon ?? null, newColor || null);
+      setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, color: newColor || null } : c));
+      if (selectedMonth) fetchSummary(selectedMonth);
+    } catch {
+      setError('Failed to update category color');
+    } finally {
+      setColorUpdateId(null);
+    }
+  }, [categories, selectedMonth, fetchSummary]);
 
   useEffect(() => {
     if (selectedMonth) {
@@ -197,10 +219,28 @@ export default function DashboardPage() {
                     {summary.byCategory.map((cat, i) => (
                       <div key={i} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: cat.categoryColor }}
-                          />
+                          {cat.categoryId != null ? (
+                            <Popover>
+                              <PopoverTrigger
+                                className="w-3 h-3 rounded-full cursor-pointer ring-offset-background transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+                                style={{ backgroundColor: cat.categoryColor }}
+                                disabled={colorUpdateId === cat.categoryId}
+                                aria-label={`Change color for ${cat.categoryName}`}
+                              />
+                              <PopoverContent className="w-auto">
+                                <ColorPicker
+                                  label={`${cat.categoryName} color`}
+                                  value={cat.categoryColor ?? ''}
+                                  onChange={color => handleColorChange(cat.categoryId!, color)}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: cat.categoryColor }}
+                            />
+                          )}
                           <span>{cat.categoryName}</span>
                         </div>
                         <div className="flex items-center gap-3">

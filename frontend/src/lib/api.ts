@@ -217,6 +217,13 @@ export const api = {
     });
   },
 
+  updateCategory(id: number, name: string, icon: string | null, color: string | null): Promise<CategoryResponse> {
+    return request(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, icon, color }),
+    });
+  },
+
   getProviders(): Promise<ProviderResponse[]> {
     return request('/providers');
   },
