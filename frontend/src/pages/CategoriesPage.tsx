@@ -29,6 +29,10 @@ export default function CategoriesPage() {
   const [catError, setCatError] = useState<string | null>(null);
   const [catSaving, setCatSaving] = useState(false);
 
+  const [deleteCatTarget, setDeleteCatTarget] = useState<CategoryResponse | null>(null);
+  const [deleteCatError, setDeleteCatError] = useState<string | null>(null);
+  const [deleteCatSaving, setDeleteCatSaving] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -70,6 +74,21 @@ export default function CategoriesPage() {
     setCatIcon(cat.icon ?? '');
     setCatColor(cat.color ?? '');
     setCatError(null);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!deleteCatTarget) return;
+    setDeleteCatSaving(true);
+    setDeleteCatError(null);
+    try {
+      await api.deleteCategory(deleteCatTarget.id);
+      setDeleteCatTarget(null);
+      await fetchData();
+    } catch (err) {
+      setDeleteCatError(err instanceof Error ? err.message : 'Failed to delete category');
+    } finally {
+      setDeleteCatSaving(false);
+    }
   };
 
   const saveCategoryDialog = async () => {
@@ -158,7 +177,7 @@ export default function CategoriesPage() {
                   </Badge>
 
                   <Button variant="outline" size="sm" onClick={() => openEditCategory(cat)}>Edit</Button>
-                  <Button variant="outline" size="sm">Delete</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setDeleteCatTarget(cat); setDeleteCatError(null); }}>Delete</Button>
                 </div>
 
                 {isExpanded && (
@@ -171,6 +190,24 @@ export default function CategoriesPage() {
           })}
         </div>
       )}
+      <Dialog open={!!deleteCatTarget} onOpenChange={open => { if (!open) setDeleteCatTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete "{deleteCatTarget?.name}"?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Transactions in this category will become uncategorized.
+          </p>
+          {deleteCatError && <p className="text-sm text-destructive">{deleteCatError}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteCatTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteCategory} disabled={deleteCatSaving}>
+              {deleteCatSaving ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={categoryDialog.open} onOpenChange={open => setCategoryDialog(d => ({ ...d, open }))}>
         <DialogContent>
           <DialogHeader>
