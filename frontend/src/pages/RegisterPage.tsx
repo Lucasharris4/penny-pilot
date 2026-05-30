@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import logo from '@/assets/logo.png';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import PasswordStrengthBar from '@/components/PasswordStrengthBar';
@@ -45,7 +46,9 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md flex flex-col items-center gap-6">
+        <img src={logo} alt="Penny Pilot" className="w-96" />
+        <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>Get started with Penny Pilot</CardDescription>
@@ -102,7 +105,8 @@ export default function RegisterPage() {
             </p>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
