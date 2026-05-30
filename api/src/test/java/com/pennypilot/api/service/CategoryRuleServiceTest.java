@@ -59,7 +59,7 @@ class CategoryRuleServiceTest {
     // --- create ---
 
     @Test
-    void createRule_success() {
+    void createRule_success_explicitPriority() {
         Category category = makeCategory(5L, USER_ID, "Coffee");
         when(categoryRepository.findByIdAndUserId(5L, USER_ID)).thenReturn(Optional.of(category));
         when(ruleRepository.save(any(CategoryRule.class))).thenAnswer(inv -> {
@@ -79,12 +79,29 @@ class CategoryRuleServiceTest {
     }
 
     @Test
+    void createRule_nullPriority_autoIncrements() {
+        Category category = makeCategory(5L, USER_ID, "Coffee");
+        when(categoryRepository.findByIdAndUserId(5L, USER_ID)).thenReturn(Optional.of(category));
+        when(ruleRepository.findMaxPriorityByUserId(USER_ID)).thenReturn(5);
+        when(ruleRepository.save(any(CategoryRule.class))).thenAnswer(inv -> {
+            CategoryRule r = inv.getArgument(0);
+            r.setId(1L);
+            return r;
+        });
+
+        CategoryRuleResponse response = service.createRule(USER_ID,
+                new CreateCategoryRuleRequest("STARBUCKS*", 5L, null));
+
+        assertEquals(6, response.priority());
+    }
+
+    @Test
     void createRule_categoryNotFound_throws() {
         when(categoryRepository.findByIdAndUserId(99L, USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(CategoryRuleService.CategoryNotFoundException.class,
                 () -> service.createRule(USER_ID,
-                        new CreateCategoryRuleRequest("STARBUCKS*", 99L, 10)));
+                        new CreateCategoryRuleRequest("STARBUCKS*", 99L, null)));
     }
 
     // --- update ---
@@ -104,6 +121,20 @@ class CategoryRuleServiceTest {
         assertEquals(6L, response.categoryId());
         assertEquals("Dining", response.categoryName());
         assertEquals(5, response.priority());
+    }
+
+    @Test
+    void updateRule_nullPriority_preservesPriority() {
+        CategoryRule existing = makeRule(1L, USER_ID, "STARBUCKS*", 5L, 10);
+        Category category = makeCategory(5L, USER_ID, "Coffee");
+        when(ruleRepository.findByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(existing));
+        when(categoryRepository.findByIdAndUserId(5L, USER_ID)).thenReturn(Optional.of(category));
+        when(ruleRepository.save(any(CategoryRule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CategoryRuleResponse response = service.updateRule(USER_ID, 1L,
+                new UpdateCategoryRuleRequest("DUNKIN*", 5L, null));
+
+        assertEquals(10, response.priority());
     }
 
     @Test

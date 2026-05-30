@@ -14,7 +14,6 @@ public record CreateCategoryRuleRequest(
         @NotNull(message = "Category ID is required")
         Long categoryId,
 
-        @Schema(description = "Priority (higher wins on conflicts)", example = "1")
-        @NotNull(message = "Priority is required")
+        @Schema(description = "Priority (higher wins on conflicts). Auto-incremented if omitted.", example = "1")
         Integer priority
 ) {}

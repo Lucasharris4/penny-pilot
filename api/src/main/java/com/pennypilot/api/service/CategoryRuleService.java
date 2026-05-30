@@ -40,11 +40,15 @@ public class CategoryRuleService {
         Category category = categoryRepository.findByIdAndUserId(request.categoryId(), userId)
                 .orElseThrow(() -> new CategoryNotFoundException(request.categoryId()));
 
+        int priority = request.priority() != null
+                ? request.priority()
+                : categoryRuleRepository.findMaxPriorityByUserId(userId) + 1;
+
         CategoryRule rule = new CategoryRule();
         rule.setUserId(userId);
         rule.setMatchPattern(request.matchPattern());
         rule.setCategoryId(request.categoryId());
-        rule.setPriority(request.priority());
+        rule.setPriority(priority);
 
         CategoryRule saved = categoryRuleRepository.save(rule);
         return CategoryRuleResponse.from(saved, category.getName());
@@ -59,7 +63,9 @@ public class CategoryRuleService {
 
         rule.setMatchPattern(request.matchPattern());
         rule.setCategoryId(request.categoryId());
-        rule.setPriority(request.priority());
+        if (request.priority() != null) {
+            rule.setPriority(request.priority());
+        }
 
         CategoryRule saved = categoryRuleRepository.save(rule);
         return CategoryRuleResponse.from(saved, category.getName());

@@ -7,6 +7,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import TransactionsPage from '@/pages/TransactionsPage';
 import AccountsPage from '@/pages/AccountsPage';
 import SettingsPage from '@/pages/SettingsPage';
+import CategoriesPage from '@/pages/CategoriesPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/transactions" replace />} />
       </Routes>
