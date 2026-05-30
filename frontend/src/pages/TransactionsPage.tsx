@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { TransactionResponse, CategoryResponse, TransactionFilters } from '@/lib/api';
+import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,8 @@ function formatDate(dateStr: string): string {
 }
 
 export default function TransactionsPage() {
+  const { showToast } = useToast();
+
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [totalPages, setTotalPages] = useState(0);
@@ -76,6 +79,13 @@ export default function TransactionsPage() {
 
   // Show/hide ignored transactions
   const [showIgnored, setShowIgnored] = useState(true);
+
+  // Create rule from merchant dialog
+  const [ruleDialogTxn, setRuleDialogTxn] = useState<TransactionResponse | null>(null);
+  const [rulePattern, setRulePattern] = useState('');
+  const [ruleCategoryId, setRuleCategoryId] = useState('');
+  const [ruleSaving, setRuleSaving] = useState(false);
+  const [ruleError, setRuleError] = useState<string | null>(null);
 
   // Bulk categorize dialog
   const [showBulkDialog, setShowBulkDialog] = useState(false);
@@ -263,6 +273,44 @@ export default function TransactionsPage() {
     }
   };
 
+  const openRuleDialog = (txn: TransactionResponse) => {
+    setRuleDialogTxn(txn);
+    setRulePattern(txn.merchantName ?? '');
+    setRuleCategoryId(txn.categoryId != null ? String(txn.categoryId) : '');
+    setRuleError(null);
+  };
+
+  const handleCreateRule = async () => {
+    if (!ruleDialogTxn || !rulePattern.trim() || !ruleCategoryId) return;
+    setRuleSaving(true);
+    setRuleError(null);
+    try {
+      await api.createRule(rulePattern.trim(), Number(ruleCategoryId));
+      await api.updateTransaction(ruleDialogTxn.id, {
+        categoryId: Number(ruleCategoryId),
+        amountCents: ruleDialogTxn.amountCents,
+        transactionType: ruleDialogTxn.transactionType,
+        description: ruleDialogTxn.description,
+        merchantName: ruleDialogTxn.merchantName,
+        date: ruleDialogTxn.date,
+      });
+      const selectedCat = categories.find(c => c.id === Number(ruleCategoryId));
+      setTransactions(prev =>
+        prev.map(t =>
+          t.id === ruleDialogTxn.id
+            ? { ...t, categoryId: Number(ruleCategoryId), categoryName: selectedCat?.name ?? '' }
+            : t
+        )
+      );
+      setRuleDialogTxn(null);
+      showToast('Rule created');
+    } catch (err) {
+      setRuleError(err instanceof Error ? err.message : 'Failed to create rule');
+    } finally {
+      setRuleSaving(false);
+    }
+  };
+
   const sortIndicator = (field: string) => {
     if (sortField !== field) return '';
     return sortDir === 'asc' ? ' ↑' : ' ↓';
@@ -370,8 +418,8 @@ export default function TransactionsPage() {
                 <TableRow>
                   <TableHead className="w-10"><Skeleton className="h-4 w-4" /></TableHead>
                   <TableHead><Skeleton className="h-4 w-12" /></TableHead>
-                  <TableHead><Skeleton className="h-4 w-24" /></TableHead>
                   <TableHead><Skeleton className="h-4 w-20" /></TableHead>
+                  <TableHead><Skeleton className="h-4 w-24" /></TableHead>
                   <TableHead><Skeleton className="h-4 w-16" /></TableHead>
                   <TableHead><Skeleton className="h-4 w-16" /></TableHead>
                   <TableHead><Skeleton className="h-4 w-12" /></TableHead>
@@ -382,8 +430,8 @@ export default function TransactionsPage() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
@@ -431,8 +479,8 @@ export default function TransactionsPage() {
                     >
                       Date{sortIndicator('date')}
                     </TableHead>
-                    <TableHead>Description</TableHead>
                     <TableHead>Merchant</TableHead>
+                    <TableHead>Description</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead
                       className="cursor-pointer select-none text-right"
@@ -459,8 +507,18 @@ export default function TransactionsPage() {
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{formatDate(txn.date)}</TableCell>
+                      <TableCell className="max-w-32 truncate">
+                        {txn.merchantName ? (
+                          <button
+                            className="text-left hover:underline focus:outline-none cursor-pointer"
+                            onClick={() => openRuleDialog(txn)}
+                            title="Create rule from this merchant"
+                          >
+                            {txn.merchantName}
+                          </button>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell className="max-w-48 truncate">{txn.description}</TableCell>
-                      <TableCell className="max-w-32 truncate">{txn.merchantName || '—'}</TableCell>
                       <TableCell>
                         {editingId === txn.id ? (
                           <Select
@@ -567,6 +625,49 @@ export default function TransactionsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkDialog(false)}>Cancel</Button>
             <Button onClick={handleBulkCategorize} disabled={!bulkCategoryId}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create rule from merchant dialog */}
+      <Dialog open={!!ruleDialogTxn} onOpenChange={open => { if (!open) setRuleDialogTxn(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Rule</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="rule-pattern">Pattern</Label>
+              <Input
+                id="rule-pattern"
+                value={rulePattern}
+                onChange={e => setRulePattern(e.target.value)}
+                placeholder="e.g. STARBUCKS* or *AMAZON*"
+              />
+              <p className="text-xs text-muted-foreground">Glob syntax — <code>*</code> matches any characters. Case-insensitive.</p>
+            </div>
+            <div className="space-y-1">
+              <Label>Category</Label>
+              <Select value={ruleCategoryId} onValueChange={v => setRuleCategoryId(v ?? '')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.icon ? `${c.icon} ` : ''}{c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {ruleError && <p className="text-sm text-destructive">{ruleError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleDialogTxn(null)}>Cancel</Button>
+            <Button onClick={handleCreateRule} disabled={!rulePattern.trim() || !ruleCategoryId || ruleSaving}>
+              {ruleSaving ? 'Saving…' : 'Create'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -36,6 +36,8 @@ export default function CategoriesPage() {
   const [recalcConfirmOpen, setRecalcConfirmOpen] = useState(false);
   const [recalcResult, setRecalcResult] = useState<RecategorizeResponse | null>(null);
   const [recalcSaving, setRecalcSaving] = useState(false);
+  const [recalcStartDate, setRecalcStartDate] = useState('');
+  const [recalcEndDate, setRecalcEndDate] = useState('');
 
   const [ruleDialog, setRuleDialog] = useState<{ open: boolean; editing: CategoryRuleResponse | null; categoryId: number | null }>({ open: false, editing: null, categoryId: null });
   const [rulePattern, setRulePattern] = useState('');
@@ -103,7 +105,7 @@ export default function CategoriesPage() {
   const runRecalculate = async () => {
     setRecalcSaving(true);
     try {
-      const result = await api.recategorizeTransactions();
+      const result = await api.recategorizeTransactions(recalcStartDate || undefined, recalcEndDate || undefined);
       setRecalcResult(result);
       setRecalcConfirmOpen(false);
       await fetchData();
@@ -179,7 +181,7 @@ export default function CategoriesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Categories</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setRecalcResult(null); setRecalcConfirmOpen(true); }}>
+          <Button variant="outline" onClick={() => { setRecalcResult(null); setRecalcStartDate(''); setRecalcEndDate(''); setRecalcConfirmOpen(true); }}>
             Recalculate All Transactions
           </Button>
           <Button onClick={openCreateCategory}>+ Category</Button>
@@ -297,10 +299,32 @@ export default function CategoriesPage() {
           <DialogHeader>
             <DialogTitle>Recalculate All Transactions?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">
-            This will re-run all your rules against every transaction and overwrite their current categories.
-            Transactions with no matching rule will become uncategorized.
-          </p>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              This will re-run all your rules against every transaction and overwrite their current categories.
+              Transactions with no matching rule will become uncategorized.
+            </p>
+            <div className="flex gap-3">
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="recalc-start">From (optional)</Label>
+                <Input
+                  id="recalc-start"
+                  type="date"
+                  value={recalcStartDate}
+                  onChange={e => setRecalcStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="recalc-end">To (optional)</Label>
+                <Input
+                  id="recalc-end"
+                  type="date"
+                  value={recalcEndDate}
+                  onChange={e => setRecalcEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRecalcConfirmOpen(false)}>Cancel</Button>
             <Button onClick={runRecalculate} disabled={recalcSaving}>
