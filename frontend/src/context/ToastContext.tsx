@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               'pointer-events-auto px-4 py-2.5 rounded-md shadow-lg text-sm font-medium',
               t.variant === 'error'
                 ? 'bg-destructive text-destructive-foreground'
-                : 'bg-foreground text-background',
+                : 'bg-green-600 text-white',
             ].join(' ')}
           >
             {t.message}
