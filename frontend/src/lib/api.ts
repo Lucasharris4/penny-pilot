@@ -107,6 +107,14 @@ export interface CategoryResponse {
   color: string | null;
 }
 
+export interface CategoryRuleResponse {
+  id: number;
+  matchPattern: string;
+  categoryId: number;
+  categoryName: string;
+  priority: number;
+}
+
 export interface ProviderResponse {
   id: number;
   name: string;
@@ -222,6 +230,32 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ name, icon, color }),
     });
+  },
+
+  deleteCategory(id: number): Promise<void> {
+    return request(`/categories/${id}`, { method: 'DELETE' });
+  },
+
+  listRules(): Promise<CategoryRuleResponse[]> {
+    return request('/category-rules');
+  },
+
+  createRule(matchPattern: string, categoryId: number): Promise<CategoryRuleResponse> {
+    return request('/category-rules', {
+      method: 'POST',
+      body: JSON.stringify({ matchPattern, categoryId }),
+    });
+  },
+
+  updateRule(id: number, matchPattern: string, categoryId: number): Promise<CategoryRuleResponse> {
+    return request(`/category-rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ matchPattern, categoryId }),
+    });
+  },
+
+  deleteRule(id: number): Promise<void> {
+    return request(`/category-rules/${id}`, { method: 'DELETE' });
   },
 
   getProviders(): Promise<ProviderResponse[]> {

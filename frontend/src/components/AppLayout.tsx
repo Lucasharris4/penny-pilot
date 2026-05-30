@@ -7,6 +7,7 @@ const navItems = [
   { to: '/transactions', label: 'Transactions' },
   { to: '/accounts', label: 'Accounts' },
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/categories', label: 'Categories' },
 ];
 
 function NavContents({ onNavigate }: { onNavigate?: () => void }) {
