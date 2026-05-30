@@ -3,7 +3,17 @@ import { api } from '@/lib/api';
 import type { CategoryResponse, CategoryRuleResponse } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import ColorPicker from '@/components/ColorPicker';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryResponse[]>([]);
@@ -11,6 +21,13 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const [categoryDialog, setCategoryDialog] = useState<{ open: boolean; editing: CategoryResponse | null }>({ open: false, editing: null });
+  const [catName, setCatName] = useState('');
+  const [catIcon, setCatIcon] = useState('');
+  const [catColor, setCatColor] = useState('');
+  const [catError, setCatError] = useState<string | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -39,11 +56,46 @@ export default function CategoriesPage() {
   const rulesForCategory = (catId: number) =>
     rules.filter(r => r.categoryId === catId).sort((a, b) => b.priority - a.priority);
 
+  const openCreateCategory = () => {
+    setCategoryDialog({ open: true, editing: null });
+    setCatName('');
+    setCatIcon('');
+    setCatColor('');
+    setCatError(null);
+  };
+
+  const openEditCategory = (cat: CategoryResponse) => {
+    setCategoryDialog({ open: true, editing: cat });
+    setCatName(cat.name);
+    setCatIcon(cat.icon ?? '');
+    setCatColor(cat.color ?? '');
+    setCatError(null);
+  };
+
+  const saveCategoryDialog = async () => {
+    if (!catName.trim()) return;
+    setCatSaving(true);
+    setCatError(null);
+    try {
+      if (categoryDialog.editing) {
+        await api.updateCategory(categoryDialog.editing.id, catName.trim(), catIcon || null, catColor || null);
+      } else {
+        await api.createCategory(catName.trim(), catIcon || undefined, catColor || undefined);
+      }
+      setCategoryDialog({ open: false, editing: null });
+      await fetchData();
+    } catch (err) {
+      setCatError(err instanceof Error ? err.message : 'Failed to save category');
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Categories</h1>
-        <Button>+ Category</Button>
+        <Button onClick={openCreateCategory}>+ Category</Button>
       </div>
 
       {error && (
@@ -69,7 +121,7 @@ export default function CategoriesPage() {
         <div className="text-center py-16">
           <p className="text-lg text-muted-foreground">No categories yet</p>
           <p className="text-sm text-muted-foreground mt-1">Create a category to start organizing your transactions.</p>
-          <Button className="mt-4">+ Category</Button>
+          <Button className="mt-4" onClick={openCreateCategory}>+ Category</Button>
         </div>
       ) : (
         <div className="border rounded-md divide-y divide-border">
@@ -105,7 +157,7 @@ export default function CategoriesPage() {
                     {catRules.length} {catRules.length === 1 ? 'rule' : 'rules'}
                   </Badge>
 
-                  <Button variant="outline" size="sm">Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => openEditCategory(cat)}>Edit</Button>
                   <Button variant="outline" size="sm">Delete</Button>
                 </div>
 
@@ -119,6 +171,42 @@ export default function CategoriesPage() {
           })}
         </div>
       )}
+      <Dialog open={categoryDialog.open} onOpenChange={open => setCategoryDialog(d => ({ ...d, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{categoryDialog.editing ? 'Edit Category' : 'New Category'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="cat-name">Name</Label>
+              <Input
+                id="cat-name"
+                value={catName}
+                onChange={e => setCatName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveCategoryDialog()}
+                placeholder="e.g., Groceries"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="cat-icon">Icon (optional)</Label>
+              <Input
+                id="cat-icon"
+                value={catIcon}
+                onChange={e => setCatIcon(e.target.value)}
+                placeholder="e.g., 🛒"
+              />
+            </div>
+            <ColorPicker value={catColor} onChange={setCatColor} />
+            {catError && <p className="text-sm text-destructive">{catError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryDialog({ open: false, editing: null })}>Cancel</Button>
+            <Button onClick={saveCategoryDialog} disabled={!catName.trim() || catSaving}>
+              {catSaving ? 'Saving…' : categoryDialog.editing ? 'Save' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
