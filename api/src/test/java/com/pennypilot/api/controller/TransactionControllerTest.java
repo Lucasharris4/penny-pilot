@@ -5,7 +5,6 @@ import com.pennypilot.api.config.SecurityConfig;
 import com.pennypilot.api.config.TestJwtConfig;
 import com.pennypilot.api.dto.transaction.*;
 import com.pennypilot.api.entity.TransactionType;
-import com.pennypilot.api.service.TransactionService;
 import com.pennypilot.api.service.JwtService;
 import com.pennypilot.api.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -224,6 +224,40 @@ class TransactionControllerTest {
                         .content("""
                                 {"ids": [1], "ignored": true}
                                 """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- recalculate categories ---
+
+    @Test
+    void recalculateCategories_returns200WithCounts() throws Exception {
+        when(transactionService.recategorize(eq(1L), eq(null), eq(null)))
+                .thenReturn(new RecategorizeResponse(42, 30, 5));
+
+        mockMvc.perform(post("/api/transactions/recalculate-categories")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recalculated").value(42))
+                .andExpect(jsonPath("$.updated").value(30))
+                .andExpect(jsonPath("$.skipped").value(5));
+    }
+
+    @Test
+    void recalculateCategories_withDateRange_passesParams() throws Exception {
+        when(transactionService.recategorize(eq(1L), eq("2026-01-01"), eq("2026-03-31")))
+                .thenReturn(new RecategorizeResponse(10, 8, 1));
+
+        mockMvc.perform(post("/api/transactions/recalculate-categories")
+                        .header("Authorization", "Bearer " + token)
+                        .param("startDate", "2026-01-01")
+                        .param("endDate", "2026-03-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recalculated").value(10));
+    }
+
+    @Test
+    void recalculateCategories_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(post("/api/transactions/recalculate-categories"))
                 .andExpect(status().isUnauthorized());
     }
 

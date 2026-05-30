@@ -1,10 +1,12 @@
 package com.pennypilot.api.service;
 
 import com.pennypilot.api.dto.transaction.*;
+import com.pennypilot.api.entity.CategoryRule;
 import com.pennypilot.api.entity.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.pennypilot.api.repository.CategoryRepository;
+import com.pennypilot.api.repository.CategoryRuleRepository;
 import com.pennypilot.api.repository.TransactionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,10 +25,17 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
+    private final CategoryRuleRepository categoryRuleRepository;
+    private final CategoryRuleService categoryRuleService;
 
-    public TransactionService(TransactionRepository transactionRepository, CategoryRepository categoryRepository) {
+    public TransactionService(TransactionRepository transactionRepository,
+                              CategoryRepository categoryRepository,
+                              CategoryRuleRepository categoryRuleRepository,
+                              CategoryRuleService categoryRuleService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
+        this.categoryRuleRepository = categoryRuleRepository;
+        this.categoryRuleService = categoryRuleService;
     }
 
     public Page<TransactionResponse> listTransactions(Long userId, TransactionFilter filter, Pageable pageable) {
@@ -98,6 +108,38 @@ public class TransactionService {
         transactionRepository.saveAll(transactions);
 
         return transactions.size();
+    }
+
+    @Transactional
+    public RecategorizeResponse recategorize(Long userId, String startDate, String endDate) {
+        List<CategoryRule> rules = categoryRuleRepository.findByUserIdOrderByPriorityDesc(userId);
+        TransactionFilter filter = new TransactionFilter(startDate, endDate, null, null, null, null, null);
+        List<Transaction> transactions = transactionRepository.findAll(filter.toSpecification(userId));
+
+        int recalculated = 0;
+        int updated = 0;
+        int skipped = 0;
+
+        for (Transaction txn : transactions) {
+            String merchant = txn.getMerchantName();
+            if (merchant == null || merchant.isBlank()) {
+                skipped++;
+                continue;
+            }
+
+            Long newCategoryId = categoryRuleService.findMatchingCategoryId(rules, merchant).orElse(null);
+            recalculated++;
+            if (!Objects.equals(txn.getCategoryId(), newCategoryId)) {
+                txn.setCategoryId(newCategoryId);
+                updated++;
+            }
+        }
+
+        transactionRepository.saveAll(transactions.stream()
+                .filter(t -> t.getMerchantName() != null && !t.getMerchantName().isBlank())
+                .toList());
+
+        return new RecategorizeResponse(recalculated, updated, skipped);
     }
 
     private Map<Long, String> loadCategoryNames(Long userId) {

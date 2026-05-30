@@ -71,6 +71,17 @@ public class TransactionController {
         return ResponseEntity.ok(new BulkIgnoreResponse(updated));
     }
 
+    @PostMapping("/recalculate-categories")
+    @Operation(summary = "Re-run all category rules against transactions")
+    @ApiResponse(responseCode = "200", description = "Recalculation complete")
+    public ResponseEntity<RecategorizeResponse> recategorize(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        RecategorizeResponse response = transactionService.recategorize(userId, startDate, endDate);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/bulk-categorize")
     @Operation(summary = "Assign a category to multiple transactions")
     @ApiResponse(responseCode = "200", description = "Transactions categorized")
