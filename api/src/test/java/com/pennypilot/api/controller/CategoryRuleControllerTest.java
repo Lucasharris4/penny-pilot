@@ -80,7 +80,7 @@ class CategoryRuleControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"matchPattern": "STARBUCKS*", "categoryId": 5, "priority": 10}
+                                {"matchPattern": "STARBUCKS*", "categoryId": 5}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
@@ -93,7 +93,7 @@ class CategoryRuleControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"matchPattern": "", "categoryId": 5, "priority": 10}
+                                {"matchPattern": "", "categoryId": 5}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -104,7 +104,7 @@ class CategoryRuleControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"matchPattern": "STARBUCKS*", "priority": 10}
+                                {"matchPattern": "STARBUCKS*"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -118,7 +118,7 @@ class CategoryRuleControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"matchPattern": "STARBUCKS*", "categoryId": 99, "priority": 10}
+                                {"matchPattern": "STARBUCKS*", "categoryId": 99}
                                 """))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").exists());
@@ -135,7 +135,7 @@ class CategoryRuleControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"matchPattern": "DUNKIN*", "categoryId": 6, "priority": 5}
+                                {"matchPattern": "DUNKIN*", "categoryId": 6}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.matchPattern").value("DUNKIN*"));

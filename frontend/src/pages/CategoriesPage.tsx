@@ -33,6 +33,11 @@ export default function CategoriesPage() {
   const [deleteCatError, setDeleteCatError] = useState<string | null>(null);
   const [deleteCatSaving, setDeleteCatSaving] = useState(false);
 
+  const [ruleDialog, setRuleDialog] = useState<{ open: boolean; editing: CategoryRuleResponse | null; categoryId: number | null }>({ open: false, editing: null, categoryId: null });
+  const [rulePattern, setRulePattern] = useState('');
+  const [ruleError, setRuleError] = useState<string | null>(null);
+  const [ruleSaving, setRuleSaving] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -88,6 +93,37 @@ export default function CategoriesPage() {
       setDeleteCatError(err instanceof Error ? err.message : 'Failed to delete category');
     } finally {
       setDeleteCatSaving(false);
+    }
+  };
+
+  const openCreateRule = (categoryId: number) => {
+    setRuleDialog({ open: true, editing: null, categoryId });
+    setRulePattern('');
+    setRuleError(null);
+  };
+
+  const openEditRule = (rule: CategoryRuleResponse) => {
+    setRuleDialog({ open: true, editing: rule, categoryId: rule.categoryId });
+    setRulePattern(rule.matchPattern);
+    setRuleError(null);
+  };
+
+  const saveRuleDialog = async () => {
+    if (!rulePattern.trim()) return;
+    setRuleSaving(true);
+    setRuleError(null);
+    try {
+      if (ruleDialog.editing) {
+        await api.updateRule(ruleDialog.editing.id, rulePattern.trim(), ruleDialog.editing.categoryId);
+      } else {
+        await api.createRule(rulePattern.trim(), ruleDialog.categoryId!);
+      }
+      setRuleDialog({ open: false, editing: null, categoryId: null });
+      await fetchData();
+    } catch (err) {
+      setRuleError(err instanceof Error ? err.message : 'Failed to save rule');
+    } finally {
+      setRuleSaving(false);
     }
   };
 
@@ -198,7 +234,7 @@ export default function CategoriesPage() {
                         {catRules.map(rule => (
                           <div key={rule.id} className="flex items-center gap-3 px-10 py-2.5">
                             <span className="font-mono text-sm text-foreground flex-1">{rule.matchPattern}</span>
-                            <Button variant="ghost" size="sm">Edit</Button>
+                            <Button variant="ghost" size="sm" onClick={() => openEditRule(rule)}>Edit</Button>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -212,7 +248,7 @@ export default function CategoriesPage() {
                       </div>
                     )}
                     <div className="px-10 py-2.5">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground">+ Add rule</Button>
+                      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openCreateRule(cat.id)}>+ Add rule</Button>
                     </div>
                   </div>
                 )}
@@ -221,6 +257,34 @@ export default function CategoriesPage() {
           })}
         </div>
       )}
+      <Dialog open={ruleDialog.open} onOpenChange={open => setRuleDialog(d => ({ ...d, open }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{ruleDialog.editing ? 'Edit Rule' : 'New Rule'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="rule-pattern">Pattern</Label>
+              <Input
+                id="rule-pattern"
+                value={rulePattern}
+                onChange={e => setRulePattern(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && saveRuleDialog()}
+                placeholder="e.g. STARBUCKS* or *AMAZON*"
+              />
+              <p className="text-xs text-muted-foreground">Glob syntax — <code>*</code> matches any characters. Case-insensitive.</p>
+            </div>
+            {ruleError && <p className="text-sm text-destructive">{ruleError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleDialog({ open: false, editing: null, categoryId: null })}>Cancel</Button>
+            <Button onClick={saveRuleDialog} disabled={!rulePattern.trim() || ruleSaving}>
+              {ruleSaving ? 'Saving…' : ruleDialog.editing ? 'Save' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!deleteCatTarget} onOpenChange={open => { if (!open) setDeleteCatTarget(null); }}>
         <DialogContent>
           <DialogHeader>
