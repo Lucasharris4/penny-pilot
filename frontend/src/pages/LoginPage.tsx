@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import logo from '@/assets/logo.png';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -35,9 +36,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md flex flex-col items-center gap-6">
+        <img src={logo} alt="Penny Pilot" className="w-96 max-w-none" style={{ width: '610px' }} />
+        <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-2xl">Penny Pilot</CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,7 +81,8 @@ export default function LoginPage() {
             </p>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

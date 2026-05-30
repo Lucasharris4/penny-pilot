@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 const navItems = [
   { to: '/transactions', label: 'Transactions' },
@@ -16,7 +17,7 @@ function NavContents({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="px-4 py-5">
-        <h1 className="text-lg font-bold text-sidebar-foreground">Penny Pilot</h1>
+        <img src={logo} alt="Penny Pilot" className="w-34" />
       </div>
 
       <nav className="flex-1 px-2 space-y-1">
@@ -104,7 +105,7 @@ export default function AppLayout() {
               <line x1="3" y1="15" x2="17" y2="15" />
             </svg>
           </button>
-          <span className="ml-3 font-semibold text-foreground">Penny Pilot</span>
+          <img src={logo} alt="Penny Pilot" className="h-8 ml-3" />
         </header>
 
         <main className="flex-1 overflow-auto">
