@@ -91,6 +91,15 @@ export default function CategoriesPage() {
     }
   };
 
+  const deleteRule = async (rule: CategoryRuleResponse) => {
+    try {
+      await api.deleteRule(rule.id);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete rule');
+    }
+  };
+
   const saveCategoryDialog = async () => {
     if (!catName.trim()) return;
     setCatSaving(true);
@@ -181,8 +190,30 @@ export default function CategoriesPage() {
                 </div>
 
                 {isExpanded && (
-                  <div className="bg-muted/30 border-t border-border px-4 py-3">
-                    <p className="text-sm text-muted-foreground italic">Rules will appear here.</p>
+                  <div className="bg-muted/30 border-t border-border">
+                    {catRules.length === 0 ? (
+                      <div className="px-10 py-3 text-sm text-muted-foreground">No rules configured.</div>
+                    ) : (
+                      <div className="divide-y divide-border/50">
+                        {catRules.map(rule => (
+                          <div key={rule.id} className="flex items-center gap-3 px-10 py-2.5">
+                            <span className="font-mono text-sm text-foreground flex-1">{rule.matchPattern}</span>
+                            <Button variant="ghost" size="sm">Edit</Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => deleteRule(rule)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="px-10 py-2.5">
+                      <Button variant="ghost" size="sm" className="text-muted-foreground">+ Add rule</Button>
+                    </div>
                   </div>
                 )}
               </div>
