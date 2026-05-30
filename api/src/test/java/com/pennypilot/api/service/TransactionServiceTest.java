@@ -3,13 +3,16 @@ package com.pennypilot.api.service;
 import com.pennypilot.api.dto.transaction.BulkCategorizeRequest;
 import com.pennypilot.api.dto.transaction.BulkCategorizeResponse;
 import com.pennypilot.api.dto.transaction.BulkIgnoreRequest;
+import com.pennypilot.api.dto.transaction.RecategorizeResponse;
 import com.pennypilot.api.dto.transaction.TransactionFilter;
 import com.pennypilot.api.dto.transaction.TransactionResponse;
 import com.pennypilot.api.dto.transaction.UpdateTransactionRequest;
 import com.pennypilot.api.entity.Category;
+import com.pennypilot.api.entity.CategoryRule;
 import com.pennypilot.api.entity.Transaction;
 import com.pennypilot.api.entity.TransactionType;
 import com.pennypilot.api.repository.CategoryRepository;
+import com.pennypilot.api.repository.CategoryRuleRepository;
 import com.pennypilot.api.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,8 @@ class TransactionServiceTest {
 
     private TransactionRepository transactionRepository;
     private CategoryRepository categoryRepository;
+    private CategoryRuleRepository categoryRuleRepository;
+    private CategoryRuleService categoryRuleService;
     private TransactionService transactionService;
 
     private static final Long USER_ID = 1L;
@@ -39,7 +44,10 @@ class TransactionServiceTest {
     void setUp() {
         transactionRepository = mock(TransactionRepository.class);
         categoryRepository = mock(CategoryRepository.class);
-        transactionService = new TransactionService(transactionRepository, categoryRepository);
+        categoryRuleRepository = mock(CategoryRuleRepository.class);
+        categoryRuleService = mock(CategoryRuleService.class);
+        transactionService = new TransactionService(transactionRepository, categoryRepository,
+                categoryRuleRepository, categoryRuleService);
     }
 
     // --- list ---
@@ -245,6 +253,78 @@ class TransactionServiceTest {
         verify(transactionRepository, never()).saveAll(any());
     }
 
+    // --- recategorize ---
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recategorize_assignsMatchingCategory() {
+        CategoryRule rule = makeRule(1L, USER_ID, "STARBUCKS*", 5L, 10);
+        Transaction txn = makeTransaction(1L, USER_ID, 1L, null, 500, TransactionType.DEBIT,
+                "STARBUCKS #123", "STARBUCKS #123", "2026-03-15");
+
+        when(categoryRuleRepository.findByUserIdOrderByPriorityDesc(USER_ID)).thenReturn(List.of(rule));
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(txn));
+        when(categoryRuleService.findMatchingCategoryId(any(), eq("STARBUCKS #123"))).thenReturn(Optional.of(5L));
+
+        RecategorizeResponse result = transactionService.recategorize(USER_ID, null, null);
+
+        assertEquals(1, result.recalculated());
+        assertEquals(1, result.updated());
+        assertEquals(0, result.skipped());
+        assertEquals(5L, txn.getCategoryId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recategorize_noMatchingRule_clearsCategory() {
+        Transaction txn = makeTransaction(1L, USER_ID, 1L, 5L, 500, TransactionType.DEBIT,
+                "UNKNOWN STORE", "UNKNOWN STORE", "2026-03-15");
+
+        when(categoryRuleRepository.findByUserIdOrderByPriorityDesc(USER_ID)).thenReturn(List.of());
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(txn));
+        when(categoryRuleService.findMatchingCategoryId(any(), eq("UNKNOWN STORE"))).thenReturn(Optional.empty());
+
+        RecategorizeResponse result = transactionService.recategorize(USER_ID, null, null);
+
+        assertEquals(1, result.recalculated());
+        assertEquals(1, result.updated());
+        assertEquals(0, result.skipped());
+        assertNull(txn.getCategoryId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recategorize_nullMerchant_skipped() {
+        Transaction txn = makeTransaction(1L, USER_ID, 1L, null, 500, TransactionType.DEBIT,
+                "Some description", null, "2026-03-15");
+
+        when(categoryRuleRepository.findByUserIdOrderByPriorityDesc(USER_ID)).thenReturn(List.of());
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(txn));
+
+        RecategorizeResponse result = transactionService.recategorize(USER_ID, null, null);
+
+        assertEquals(0, result.recalculated());
+        assertEquals(0, result.updated());
+        assertEquals(1, result.skipped());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recategorize_categoryUnchanged_notCountedAsUpdated() {
+        Transaction txn = makeTransaction(1L, USER_ID, 1L, 5L, 500, TransactionType.DEBIT,
+                "STARBUCKS #123", "STARBUCKS #123", "2026-03-15");
+
+        when(categoryRuleRepository.findByUserIdOrderByPriorityDesc(USER_ID)).thenReturn(List.of());
+        when(transactionRepository.findAll(any(Specification.class))).thenReturn(List.of(txn));
+        when(categoryRuleService.findMatchingCategoryId(any(), eq("STARBUCKS #123"))).thenReturn(Optional.of(5L));
+
+        RecategorizeResponse result = transactionService.recategorize(USER_ID, null, null);
+
+        assertEquals(1, result.recalculated());
+        assertEquals(0, result.updated());
+        assertEquals(0, result.skipped());
+    }
+
     // --- helpers ---
 
     private Transaction makeTransaction(Long id, Long userId, Long accountId, Long categoryId,
@@ -271,5 +351,15 @@ class TransactionServiceTest {
         c.setIcon(icon);
         c.setColor(color);
         return c;
+    }
+
+    private CategoryRule makeRule(Long id, Long userId, String pattern, Long categoryId, int priority) {
+        CategoryRule r = new CategoryRule();
+        r.setId(id);
+        r.setUserId(userId);
+        r.setMatchPattern(pattern);
+        r.setCategoryId(categoryId);
+        r.setPriority(priority);
+        return r;
     }
 }

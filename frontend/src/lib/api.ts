@@ -107,6 +107,12 @@ export interface CategoryResponse {
   color: string | null;
 }
 
+export interface RecategorizeResponse {
+  recalculated: number;
+  updated: number;
+  skipped: number;
+}
+
 export interface CategoryRuleResponse {
   id: number;
   matchPattern: string;
@@ -256,6 +262,14 @@ export const api = {
 
   deleteRule(id: number): Promise<void> {
     return request(`/category-rules/${id}`, { method: 'DELETE' });
+  },
+
+  recategorizeTransactions(startDate?: string, endDate?: string): Promise<RecategorizeResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const query = params.toString();
+    return request(`/transactions/recalculate-categories${query ? `?${query}` : ''}`, { method: 'POST' });
   },
 
   getProviders(): Promise<ProviderResponse[]> {

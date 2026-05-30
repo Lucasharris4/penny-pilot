@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { CategoryResponse, CategoryRuleResponse } from '@/lib/api';
+import type { CategoryResponse, CategoryRuleResponse, RecategorizeResponse } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,10 @@ export default function CategoriesPage() {
   const [deleteCatTarget, setDeleteCatTarget] = useState<CategoryResponse | null>(null);
   const [deleteCatError, setDeleteCatError] = useState<string | null>(null);
   const [deleteCatSaving, setDeleteCatSaving] = useState(false);
+
+  const [recalcConfirmOpen, setRecalcConfirmOpen] = useState(false);
+  const [recalcResult, setRecalcResult] = useState<RecategorizeResponse | null>(null);
+  const [recalcSaving, setRecalcSaving] = useState(false);
 
   const [ruleDialog, setRuleDialog] = useState<{ open: boolean; editing: CategoryRuleResponse | null; categoryId: number | null }>({ open: false, editing: null, categoryId: null });
   const [rulePattern, setRulePattern] = useState('');
@@ -93,6 +97,21 @@ export default function CategoriesPage() {
       setDeleteCatError(err instanceof Error ? err.message : 'Failed to delete category');
     } finally {
       setDeleteCatSaving(false);
+    }
+  };
+
+  const runRecalculate = async () => {
+    setRecalcSaving(true);
+    try {
+      const result = await api.recategorizeTransactions();
+      setRecalcResult(result);
+      setRecalcConfirmOpen(false);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Recalculation failed');
+      setRecalcConfirmOpen(false);
+    } finally {
+      setRecalcSaving(false);
     }
   };
 
@@ -159,8 +178,24 @@ export default function CategoriesPage() {
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Categories</h1>
-        <Button onClick={openCreateCategory}>+ Category</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setRecalcResult(null); setRecalcConfirmOpen(true); }}>
+            Recalculate All Transactions
+          </Button>
+          <Button onClick={openCreateCategory}>+ Category</Button>
+        </div>
       </div>
+
+      {recalcResult && (
+        <div className="mb-4 flex items-center justify-between bg-muted p-3 rounded-md text-sm">
+          <span>
+            Recalculation complete — <strong>{recalcResult.recalculated}</strong> processed,{' '}
+            <strong>{recalcResult.updated}</strong> updated,{' '}
+            <strong>{recalcResult.skipped}</strong> skipped (no merchant name)
+          </span>
+          <button onClick={() => setRecalcResult(null)} className="text-muted-foreground hover:text-foreground ml-3 shrink-0">&times;</button>
+        </div>
+      )}
 
       {error && (
         <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm flex items-center justify-between mb-4">
@@ -257,6 +292,24 @@ export default function CategoriesPage() {
           })}
         </div>
       )}
+      <Dialog open={recalcConfirmOpen} onOpenChange={setRecalcConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recalculate All Transactions?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            This will re-run all your rules against every transaction and overwrite their current categories.
+            Transactions with no matching rule will become uncategorized.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecalcConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={runRecalculate} disabled={recalcSaving}>
+              {recalcSaving ? 'Recalculating…' : 'Recalculate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={ruleDialog.open} onOpenChange={open => setRuleDialog(d => ({ ...d, open }))}>
         <DialogContent>
           <DialogHeader>
