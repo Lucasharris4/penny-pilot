@@ -29,7 +29,10 @@ public record TransactionFilter(
         String search,
 
         @Schema(description = "When false, excludes ignored transactions. Null or true includes them.")
-        Boolean showIgnored
+        Boolean showIgnored,
+
+        @Schema(description = "When true, includes transactions with no category (null) alongside any categoryId filter")
+        Boolean includeUncategorized
 ) {
     public Specification<Transaction> toSpecification(Long userId) {
         return (root, query, cb) -> {
@@ -44,7 +47,14 @@ public record TransactionFilter(
                 predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
             }
             if (categoryId != null) {
-                predicates.add(cb.equal(root.get("categoryId"), categoryId));
+                if (Boolean.TRUE.equals(includeUncategorized)) {
+                    predicates.add(cb.or(
+                            cb.equal(root.get("categoryId"), categoryId),
+                            cb.isNull(root.get("categoryId"))
+                    ));
+                } else {
+                    predicates.add(cb.equal(root.get("categoryId"), categoryId));
+                }
             }
             if (minAmount != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("amountCents"), minAmount));

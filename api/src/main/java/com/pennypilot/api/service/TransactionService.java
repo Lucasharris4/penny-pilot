@@ -113,7 +113,7 @@ public class TransactionService {
     @Transactional
     public RecategorizeResponse recategorize(Long userId, String startDate, String endDate) {
         List<CategoryRule> rules = categoryRuleRepository.findByUserIdOrderByPriorityDesc(userId);
-        TransactionFilter filter = new TransactionFilter(startDate, endDate, null, null, null, null, null);
+        TransactionFilter filter = new TransactionFilter(startDate, endDate, null, null, null, null, null, null);
         List<Transaction> transactions = transactionRepository.findAll(filter.toSpecification(userId));
 
         int recalculated = 0;

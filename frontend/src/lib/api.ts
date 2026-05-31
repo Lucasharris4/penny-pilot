@@ -84,6 +84,7 @@ export interface TransactionFilters {
   size?: number;
   sort?: string;
   showIgnored?: boolean;
+  includeUncategorized?: boolean;
 }
 
 export interface UpdateTransactionRequest {
@@ -195,6 +196,7 @@ export const api = {
     if (filters.size != null) params.set('size', String(filters.size));
     if (filters.sort) params.set('sort', filters.sort);
     if (filters.showIgnored === false) params.set('showIgnored', 'false');
+    if (filters.includeUncategorized) params.set('includeUncategorized', 'true');
     const query = params.toString();
     return request(`/transactions${query ? `?${query}` : ''}`);
   },
