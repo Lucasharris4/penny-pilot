@@ -223,7 +223,7 @@ export default function DashboardPage() {
                             <Popover>
                               <PopoverTrigger
                                 className="w-3 h-3 rounded-full cursor-pointer ring-offset-background transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-                                style={{ backgroundColor: cat.categoryColor }}
+                                style={{ backgroundColor: cat.categoryColor ?? '#9E9E9E' }}
                                 disabled={colorUpdateId === cat.categoryId}
                                 aria-label={`Change color for ${cat.categoryName}`}
                               />
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                           ) : (
                             <div
                               className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: cat.categoryColor }}
+                              style={{ backgroundColor: cat.categoryColor ?? '#9E9E9E' }}
                             />
                           )}
                           <span>{cat.categoryName}</span>
