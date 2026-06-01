@@ -40,9 +40,10 @@ public class TransactionController {
             @RequestParam(required = false) Integer maxAmount,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean showIgnored,
+            @RequestParam(required = false) Boolean includeUncategorized,
             @PageableDefault(size = 20, sort = "date") Pageable pageable) {
         Long userId = SecurityUtils.getCurrentUserId();
-        TransactionFilter filter = new TransactionFilter(startDate, endDate, categoryId, minAmount, maxAmount, search, showIgnored);
+        TransactionFilter filter = new TransactionFilter(startDate, endDate, categoryId, minAmount, maxAmount, search, showIgnored, includeUncategorized);
         Page<TransactionResponse> page = transactionService.listTransactions(userId, filter, pageable);
         return ResponseEntity.ok(page);
     }

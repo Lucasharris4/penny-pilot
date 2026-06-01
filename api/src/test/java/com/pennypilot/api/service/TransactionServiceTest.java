@@ -38,7 +38,7 @@ class TransactionServiceTest {
     private TransactionService transactionService;
 
     private static final Long USER_ID = 1L;
-    private static final TransactionFilter EMPTY_FILTER = new TransactionFilter(null, null, null, null, null, null, null);
+    private static final TransactionFilter EMPTY_FILTER = new TransactionFilter(null, null, null, null, null, null, null, null);
 
     @BeforeEach
     void setUp() {

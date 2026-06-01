@@ -101,7 +101,11 @@ export default function TransactionsPage() {
         sort: `${sortField},${sortDir}`,
       };
       if (search) filters.search = search;
-      if (categoryFilter) filters.categoryId = Number(categoryFilter);
+      if (categoryFilter) {
+        filters.categoryId = Number(categoryFilter);
+        const selectedCat = categories.find(c => String(c.id) === categoryFilter);
+        if (selectedCat?.name === 'Other') filters.includeUncategorized = true;
+      }
       if (startDate) filters.startDate = startDate;
       if (endDate) filters.endDate = endDate;
       if (!showIgnored) filters.showIgnored = false;

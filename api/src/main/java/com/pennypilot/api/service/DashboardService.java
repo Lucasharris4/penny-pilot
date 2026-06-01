@@ -60,7 +60,7 @@ public class DashboardService {
             if (categoryId != null && categoryMap.containsKey(categoryId)) {
                 Category cat = categoryMap.get(categoryId);
                 name = cat.getName();
-                color = cat.getColor();
+                color = cat.getColor() != null ? cat.getColor() : "#9E9E9E";
             } else {
                 name = "Other";
                 color = "#9E9E9E";
