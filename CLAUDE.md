@@ -112,3 +112,4 @@ cd frontend && npm test
 - **Only implement what was explicitly agreed to in grooming.** Don't bundle extra stories or endpoints that weren't discussed. If it's in the backlog but wasn't groomed for this sprint, it doesn't ship this sprint.
 - **Avoid `cd` in Bash commands.** Use absolute paths everywhere to minimize permission prompts. The user wants to walk away during execution without babysitting approvals.
 - **Prioritize frontend stories for visible progress.** Backend-only sprints produce invisible work. Bundle at least one frontend story per sprint so demos are tangible and direction can be validated.
+- **Custom `<button>` elements need `cursor-pointer` explicitly.** Tailwind's preflight resets button cursor to `default`. Any hand-rolled button (not using the Button component) must include `cursor-pointer` in its className to appear clickable on hover.
