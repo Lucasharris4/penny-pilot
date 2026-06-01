@@ -21,7 +21,7 @@ function NavContents({ onNavigate, onCollapse }: { onNavigate?: () => void; onCo
         {onCollapse && (
           <button
             onClick={onCollapse}
-            className="p-1 text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md"
+            className="p-1 text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md cursor-pointer"
             aria-label="Collapse sidebar"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -92,7 +92,7 @@ export default function AppLayout() {
           <div className="flex flex-col items-center pt-4">
             <button
               onClick={() => setDesktopOpen(true)}
-              className="p-2 text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md"
+              className="p-2 text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-md cursor-pointer"
               aria-label="Expand sidebar"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
